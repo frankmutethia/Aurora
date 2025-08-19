@@ -24,4 +24,31 @@ export const DEMO_TESTIMONIALS = [
   { name: 'Aisha K.', role: 'Student', quote: 'Loved the simple booking and great customer service.', avatar: '/images/avatars/avatar-3.png' },
 ]
 
+export function filterDemoCars(query: URLSearchParams) {
+  let data = [...DEMO_CARS]
+  const make = query.get('make')?.toLowerCase()
+  const category = query.get('category') || undefined
+  const transmission = query.get('transmission') || undefined
+  const fuel = query.get('fuel_type') || undefined
+  const seats = Number(query.get('seats') || 0)
+  const min = Number(query.get('min_price') || 0)
+  const max = Number(query.get('max_price') || 100000)
+
+  if (make) data = data.filter((c) => [c.make, c.model].join(' ').toLowerCase().includes(make))
+  if (category && category !== 'Any') data = data.filter((c) => c.vehicle_model?.vehicle_line?.vehicle_type === (category as any))
+  if (transmission && transmission !== 'Any') data = data.filter((c) => c.transmission === transmission)
+  if (fuel && fuel !== 'Any') data = data.filter((c) => c.fuel_type === fuel)
+  if (seats) data = data.filter((c) => (c.seats || 0) >= seats)
+  data = data.filter((c) => c.rental_rate_per_day >= min && c.rental_rate_per_day <= max)
+
+  const page = Number(query.get('page') || 1)
+  const per_page = Number(query.get('per_page') || 12)
+  const total = data.length
+  const start = (page - 1) * per_page
+  const items = data.slice(start, start + per_page)
+  const total_pages = Math.max(1, Math.ceil(total / per_page))
+
+  return { cars: items, pagination: { page, per_page, total, total_pages } }
+}
+
 

@@ -3,7 +3,14 @@ import type { ReactNode } from 'react'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import CarCard from './components/CarCard'
-import { DEMO_CARS, DEMO_TESTIMONIALS } from './lib/demo'
+import AdminPage from './components/AdminPage'
+import AdminSetup from './components/AdminSetup'
+import { DEMO_CARS, filterDemoCars } from './lib/demo-data'
+import { createDemoAdmin } from './lib/demo-admin'
+import { BrowserRouter, Routes, Route, Link, useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import * as React from 'react'
+import type { Booking } from './lib/types'
+import { toast } from './components/Toaster'
 
 const Badge = ({ children }: { children: ReactNode }) => (
   <span className="inline-flex items-center rounded-full bg-white/60 backdrop-blur px-3 py-1 text-xs font-medium text-sky-700 ring-1 ring-sky-100">{children}</span>
@@ -39,10 +46,10 @@ const HeroBackground = () => (
       <path fill="url(#waveB)" d="M0,224L48,208C96,192,192,160,288,149.3C384,139,480,149,576,165.3C672,181,768,203,864,197.3C960,192,1056,160,1152,149.3C1248,139,1344,149,1392,154.7L1440,160L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z" />
     </svg>
     <div className="absolute inset-x-0 bottom-0 h-1/2 bg-[radial-gradient(80%_60%_at_60%_80%,rgba(56,189,248,0.25),transparent_60%)]" />
-  </div>
-)
+    </div>
+  )
 
-export default function App() {
+function HomePage() {
   const featured = DEMO_CARS.slice(0, 4)
 
   return (
@@ -115,7 +122,11 @@ export default function App() {
       <SectionContainer className="py-12 md:py-16">
         <h2 className="text-2xl md:text-3xl font-semibold mb-6 text-slate-900">What customers say</h2>
         <div className="grid md:grid-cols-3 gap-4">
-          {DEMO_TESTIMONIALS.map((t, i) => (
+          {[
+            { name: 'Sophie L.', role: 'Rideshare Driver', quote: 'Picked up a clean car and hit the road in minutes. Best rates in Melbourne!' },
+            { name: 'Mark R.', role: 'Contractor', quote: 'Long-term rental was flexible and hassle-free. Highly recommended.' },
+            { name: 'Aisha K.', role: 'Student', quote: 'Loved the simple booking and great customer service.' }
+          ].map((t, i) => (
             <div key={i} className="rounded-xl border hover:shadow-md transition">
               <div className="p-5 space-y-3">
                 <div className="flex items-center gap-3">
@@ -125,7 +136,7 @@ export default function App() {
                     <div className="text-xs text-slate-500">{t.role}</div>
                   </div>
                 </div>
-                <p className="text-sm text-slate-700">“{t.quote}”</p>
+                <p className="text-sm text-slate-700">"{t.quote}"</p>
               </div>
             </div>
           ))}
@@ -134,6 +145,423 @@ export default function App() {
 
       <Footer />
     </main>
+  )
+}
+
+function CarsPage() {
+  const [search] = useSearchParams()
+  const [make, setMake] = React.useState<string>(search.get('make') || '')
+  const [category, setCategory] = React.useState<string>(search.get('category') || 'Any')
+  const [transmission, setTransmission] = React.useState<string>(search.get('transmission') || 'Any')
+  const [fuel, setFuel] = React.useState<string>(search.get('fuel_type') || 'Any')
+  const [seats, setSeats] = React.useState<string>(search.get('seats') || '')
+  const [priceRange, setPriceRange] = React.useState<[number, number]>([Number(search.get('min_price') || 0) || 0, Number(search.get('max_price') || 100000) || 100000])
+  const navigate = useNavigate()
+
+  const params = new URLSearchParams(search)
+  params.set('make', make)
+  if (category !== 'Any') params.set('category', category); else params.delete('category')
+  if (transmission !== 'Any') params.set('transmission', transmission); else params.delete('transmission')
+  if (fuel !== 'Any') params.set('fuel_type', fuel); else params.delete('fuel_type')
+  if (seats) params.set('seats', seats); else params.delete('seats')
+  params.set('min_price', String(priceRange[0]))
+  params.set('max_price', String(priceRange[1]))
+
+  const filtered = filterDemoCars(params)
+  const page = Number(params.get('page') || 1)
+  const totalPages = filtered.pagination.total_pages
+  function goPage(p: number) { const n = new URLSearchParams(params); n.set('page', String(Math.min(Math.max(1, p), totalPages))); navigate(`/cars?${n.toString()}`) }
+
+  function apply() {
+    navigate(`/cars?${params.toString()}`)
+  }
+  function clear() {
+    navigate('/cars')
+  }
+
+  return (
+    <main className="min-h-screen flex flex-col bg-white">
+      <Header />
+      <section className="container mx-auto px-4 py-8 grid md:grid-cols-[280px_1fr] gap-6">
+        <aside className="space-y-4 md:sticky md:top-20 h-fit">
+          <div className="rounded-lg border p-4 space-y-4">
+            <div>
+              <label className="block text-sm mb-1">Make</label>
+              <input className="w-full rounded-md border px-3 py-2" value={make} onChange={(e) => setMake(e.target.value)} placeholder="e.g. Toyota" />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Category</label>
+              <select aria-label="Vehicle category" className="w-full rounded-md border px-3 py-2" value={category} onChange={(e) => setCategory(e.target.value)}>
+                {['Any','SUV','Sedan','Hatchback','Van'].map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Transmission</label>
+              <select aria-label="Transmission" className="w-full rounded-md border px-3 py-2" value={transmission} onChange={(e) => setTransmission(e.target.value)}>
+                {['Any','Automatic','Manual','CVT'].map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Fuel type</label>
+              <select aria-label="Fuel type" className="w-full rounded-md border px-3 py-2" value={fuel} onChange={(e) => setFuel(e.target.value)}>
+                {['Any','Petrol','Diesel','Hybrid','Electric'].map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Seats</label>
+              <input className="w-full rounded-md border px-3 py-2" value={seats} onChange={(e) => setSeats(e.target.value)} placeholder="e.g. 5" />
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Price per day</label>
+              <div className="flex items-center gap-2">
+                <input type="number" aria-label="Min price per day" className="w-1/2 rounded-md border px-3 py-2" value={priceRange[0]} onChange={(e) => setPriceRange([Number(e.target.value)||0, priceRange[1]])} />
+                <span>–</span>
+                <input type="number" aria-label="Max price per day" className="w-1/2 rounded-md border px-3 py-2" value={priceRange[1]} onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)||0])} />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button onClick={apply} className="w-full h-9 rounded-md bg-sky-600 text-white hover:bg-sky-700">Apply</button>
+              <button onClick={clear} className="w-full h-9 rounded-md border hover:border-sky-300 bg-white">Clear</button>
+            </div>
+          </div>
+        </aside>
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-xl font-semibold text-slate-900">Available Cars</h1>
+            <div className="text-sm text-slate-600">{filtered.pagination.total} results</div>
+          </div>
+          {filtered.cars.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No cars match your filters.</div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filtered.cars.map((car: (typeof DEMO_CARS)[number]) => (
+                <CarCard key={car.id} car={car} />
+              ))}
+            </div>
+          )}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-6">
+              <button onClick={()=>goPage(page-1)} disabled={page<=1} className="h-9 px-3 rounded-md border bg-white hover:border-sky-300 disabled:opacity-50">Prev</button>
+              <div className="text-sm">{page} / {totalPages}</div>
+              <button onClick={()=>goPage(page+1)} disabled={page>=totalPages} className="h-9 px-3 rounded-md border bg-white hover:border-sky-300 disabled:opacity-50">Next</button>
+            </div>
+          )}
+        </section>
+      </section>
+      <Footer />
+    </main>
+  )
+}
+
+function CarDetailsPage() {
+  const { id } = useParams()
+  const car = DEMO_CARS.find(c => String(c.id) === String(id)) || DEMO_CARS[0]
+  return (
+    <main className="min-h-screen flex flex-col bg-white">
+      <Header />
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid lg:grid-cols-2 gap-8">
+          <div className="space-y-3">
+            <img
+              src={car.image_url || '/placeholder.svg'}
+              alt={`${car.year} ${car.make} ${car.model}`}
+              className="w-full h-72 md:h-96 object-cover bg-sky-50 rounded-lg"
+            />
+            <div className="grid grid-cols-3 gap-2">
+              {[car.image_url, car.image_url, car.image_url].map((src, i) => (
+                <img key={i} src={src || '/placeholder.svg'} alt={String(i+1)} className="h-20 w-full object-cover rounded-md bg-sky-50" />
+              ))}
+            </div>
+          </div>
+          <div className="space-y-5">
+            <h1 className="text-3xl font-semibold text-slate-900">{car.year} {car.make} {car.model}</h1>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <Info label="Transmission" value={car.transmission || '—'} />
+              <Info label="Fuel" value={car.fuel_type || '—'} />
+              <Info label="Seats" value={String(car.seats || '—')} />
+              <Info label="Color" value={'—'} />
+            </div>
+            <div className="text-xl"><span className="font-semibold">${car.rental_rate_per_day.toLocaleString()}</span><span className="text-muted-foreground"> / day</span></div>
+            <div className="flex gap-3">
+              <Link to={`/book/${car.id}`} className="inline-flex"><button className="px-4 py-2 rounded-md bg-sky-600 text-white hover:bg-sky-700 shadow">Book now</button></Link>
+              <a href="#terms" className="inline-flex"><button className="px-4 py-2 rounded-md border hover:border-sky-300">View T&Cs</button></a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <Footer />
+    </main>
+  )
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <span className="text-xs text-slate-500">{label}</span>
+      <div className="text-slate-800">{value}</div>
+    </div>
+  )
+}
+
+function BookPage() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const [start, setStart] = React.useState<string>('')
+  const [end, setEnd] = React.useState<string>('')
+  const [pickup, setPickup] = React.useState<string>('Dandenong VIC')
+  const [ret, setRet] = React.useState<string>('Dandenong VIC')
+  const [special, setSpecial] = React.useState<string>('')
+  const [promo, setPromo] = React.useState<string>('')
+  const [phone, setPhone] = React.useState<string>('')
+  const [extras, setExtras] = React.useState({ gps: false, childSeat: false, addDriver: false })
+
+  const car = DEMO_CARS.find(c => String(c.id) === String(id)) || DEMO_CARS[0]
+  const days = React.useMemo(() => (start && end ? Math.max(0, Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / (1000*60*60*24))) : 0), [start, end])
+  const base = React.useMemo(() => days * (car?.rental_rate_per_day || 0), [days, car])
+  const extraDay = (extras.gps ? 10 : 0) + (extras.childSeat ? 8 : 0)
+  const extraWeek = extras.addDriver ? 20 : 0
+  const extrasTotal = extraDay * days + extraWeek * Math.ceil(days / 7)
+  const totalEstimate = base + extrasTotal
+
+  async function submit() {
+    if (!start || !end || !phone) return
+    const idNum = Math.floor(Math.random()*100000)
+    const total = totalEstimate
+    const booking: Booking = { 
+      id: idNum, 
+      user_id: 1, // Default user ID for demo
+      car_id: Number(id), 
+      start_date: new Date(start).toISOString(), 
+      end_date: new Date(end).toISOString(), 
+      pickup_location: pickup, 
+      return_location: ret, 
+      special_requests: special || undefined, 
+      promo_code: promo || undefined, 
+      phone_number: phone, 
+      status: 'pending', 
+      payment_status: 'pending',
+      total_cost: total,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+    try {
+      const mod = await import('./lib/auth')
+      mod.addBooking(booking)
+    } catch {
+      // noop in demo
+    }
+    toast('Booking confirmed')
+    navigate(`/profile?booking=${idNum}`)
+  }
+
+  return (
+    <main className="min-h-screen flex flex-col bg-white">
+      <Header />
+      <div className="container mx-auto px-4 py-8 grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <div className="border rounded-lg p-4 space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div><label className="block text-sm mb-1" htmlFor="start">Start Date</label><input id="start" type="datetime-local" className="w-full rounded-md border px-3 py-2" value={start} onChange={(e)=>setStart(e.target.value)} /></div>
+              <div><label className="block text-sm mb-1" htmlFor="end">End Date</label><input id="end" type="datetime-local" className="w-full rounded-md border px-3 py-2" value={end} onChange={(e)=>setEnd(e.target.value)} /></div>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div><label className="block text-sm mb-1" htmlFor="pickup">Pickup Location</label><input id="pickup" className="w-full rounded-md border px-3 py-2" value={pickup} onChange={(e)=>setPickup(e.target.value)} placeholder="Dandenong VIC" /></div>
+              <div><label className="block text-sm mb-1" htmlFor="return">Return Location</label><input id="return" className="w-full rounded-md border px-3 py-2" value={ret} onChange={(e)=>setRet(e.target.value)} placeholder="Dandenong VIC" /></div>
+            </div>
+          <div className="space-y-2">
+              <label className="block text-sm">Extras</label>
+              <div className="grid sm:grid-cols-3 gap-3 text-sm">
+                <label className="flex items-center gap-2"><input type="checkbox" checked={extras.gps} onChange={(e)=>setExtras(v=>({...v,gps:e.target.checked}))} /> GPS ($10/day)</label>
+                <label className="flex items-center gap-2"><input type="checkbox" checked={extras.childSeat} onChange={(e)=>setExtras(v=>({...v,childSeat:e.target.checked}))} /> Child seat ($8/day)</label>
+                <label className="flex items-center gap-2"><input type="checkbox" checked={extras.addDriver} onChange={(e)=>setExtras(v=>({...v,addDriver:e.target.checked}))} /> Additional driver ($20/week)</label>
+              </div>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div><label className="block text-sm mb-1" htmlFor="phone">Phone Number</label><input id="phone" className="w-full rounded-md border px-3 py-2" value={phone} onChange={(e)=>setPhone(e.target.value)} placeholder="+61..." /></div>
+              <div><label className="block text-sm mb-1" htmlFor="promo">Promo Code</label><input id="promo" className="w-full rounded-md border px-3 py-2" value={promo} onChange={(e)=>setPromo(e.target.value)} placeholder="e.g. WELCOME10" /></div>
+            </div>
+            <div>
+              <label className="block text-sm mb-1" htmlFor="special">Special Requests</label>
+              <textarea id="special" className="w-full rounded-md border px-3 py-2" rows={4} value={special} onChange={(e)=>setSpecial(e.target.value)} />
+            </div>
+            <div className="flex gap-3"><button onClick={submit} className="h-10 px-5 rounded-md bg-sky-600 text-white hover:bg-sky-700">Confirm Booking</button><Link to={`/cars/${id}`}><button className="h-10 px-5 rounded-md border bg-white hover:border-sky-300">Back to car</button></Link></div>
+          </div>
+        </div>
+        <aside className="space-y-4">
+          <div className="border rounded-lg p-4 space-y-2 text-sm">
+            <div className="flex justify-between"><span>Vehicle</span><span>{car ? `${car.year} ${car.make} ${car.model}` : '—'}</span></div>
+            <div className="flex justify-between"><span>Rate</span><span>${car?.rental_rate_per_day.toLocaleString()}/day</span></div>
+            <div className="flex justify-between"><span>Duration</span><span>{days} day(s)</span></div>
+            <div className="flex justify-between"><span>Extras</span><span>${extrasTotal.toLocaleString()}</span></div>
+            <div className="flex justify-between font-medium"><span>Est. total</span><span>${totalEstimate.toLocaleString()}</span></div>
+            <p className="text-xs text-slate-500">Final total may vary with fees (tolls, fines processing, etc.). See T&Cs.</p>
+          </div>
+        </aside>
+      </div>
+      <Footer />
+    </main>
+  )
+}
+
+function AboutPage() { return pageShell('About Smart Rentals', (<p className="text-slate-700">We provide affordable, reliable, and flexible car rental solutions tailored for rideshare, private use, and long-term customers in Melbourne.</p>)) }
+function ContactPage() { return pageShell('Contact us', (<div className="text-sm space-y-1 text-slate-700"><p>Smart Rentals Pty Ltd</p><p>Unit 2/11 Burrows Avenue, Dandenong VIC 3175</p><p>Phone: 0420 759 910 / 0416 003 905</p><p>Email: <a href="mailto:smartrentals58@gmail.com" className="underline text-sky-700">smartrentals58@gmail.com</a></p></div>)) }
+function TermsPage() { return pageShell('Terms and Conditions', (<div className="text-sm leading-6 text-slate-700 space-y-3"><p>Key terms summary and full contract placeholder.</p></div>)) }
+
+function LoginPage() {
+  const navigate = useNavigate()
+  const [email, setEmail] = React.useState('')
+  const [password, setPassword] = React.useState('')
+  const [error, setError] = React.useState<string | null>(null)
+  
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    try { await import('./lib/auth').then(m => m.login(email, password)); toast('Signed in'); navigate('/profile') } catch { setError('Login failed') }
+  }
+
+  const handleSignInAsAdmin = () => {
+    createDemoAdmin()
+    toast('Signed in as Admin')
+    navigate('/admin')
+  }
+
+  return (
+    <main className="min-h-screen flex flex-col bg-white">
+      <Header />
+      <div className="container mx-auto px-4 py-8 max-w-md">
+        <div className="border rounded-lg p-4 space-y-3">
+          <h1 className="text-xl font-semibold">Sign in</h1>
+          <form onSubmit={submit} className="space-y-3">
+            <div>
+              <label className="block text-sm mb-1" htmlFor="lemail">Email</label>
+              <input id="lemail" type="email" className="w-full rounded-md border px-3 py-2" value={email} onChange={(e)=>setEmail(e.target.value)} required />
+            </div>
+            <div>
+              <label className="block text-sm mb-1" htmlFor="lpass">Password</label>
+              <input id="lpass" type="password" className="w-full rounded-md border px-3 py-2" value={password} onChange={(e)=>setPassword(e.target.value)} required />
+            </div>
+            {error ? <div className="text-sm text-red-600">{error}</div> : null}
+            <button className="w-full h-10 rounded-md bg-sky-600 text-white hover:bg-sky-700">Sign in</button>
+          </form>
+          
+          <div className="pt-3 border-t">
+            <button 
+              onClick={handleSignInAsAdmin}
+              className="w-full h-10 rounded-md bg-slate-600 text-white hover:bg-slate-700 text-sm"
+            >
+              Sign in as Admin
+            </button>
+            <p className="text-xs text-slate-500 mt-2 text-center">
+              Quick access to admin dashboard for testing
+            </p>
+          </div>
+        </div>
+      </div>
+      <Footer />
+    </main>
+  )
+}
+
+function RegisterPage() {
+  const navigate = useNavigate()
+  const [form, setForm] = React.useState({ first_name: '', last_name: '', email: '', password: '', phone: '' })
+  const [error, setError] = React.useState<string | null>(null)
+  async function submit(e: React.FormEvent) {
+    e.preventDefault(); setError(null)
+    try { await import('./lib/auth').then(m => m.register(form)); toast('Account created'); navigate('/profile') } catch { setError('Registration failed') }
+  }
+  return (
+    <main className="min-h-screen flex flex-col bg-white"><Header /><div className="container mx-auto px-4 py-8 max-w-md">
+      <div className="border rounded-lg p-4 space-y-3"><h1 className="text-xl font-semibold">Create account</h1>
+        <form onSubmit={submit} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="block text-sm mb-1" htmlFor="fn">First name</label><input id="fn" className="w-full rounded-md border px-3 py-2" value={form.first_name} onChange={(e)=>setForm(f=>({...f, first_name:e.target.value}))} required /></div>
+            <div><label className="block text-sm mb-1" htmlFor="ln">Last name</label><input id="ln" className="w-full rounded-md border px-3 py-2" value={form.last_name} onChange={(e)=>setForm(f=>({...f, last_name:e.target.value}))} required /></div>
+          </div>
+          <div><label className="block text-sm mb-1" htmlFor="re">Email</label><input id="re" type="email" className="w-full rounded-md border px-3 py-2" value={form.email} onChange={(e)=>setForm(f=>({...f, email:e.target.value}))} required /></div>
+          <div><label className="block text-sm mb-1" htmlFor="ph">Phone</label><input id="ph" className="w-full rounded-md border px-3 py-2" value={form.phone} onChange={(e)=>setForm(f=>({...f, phone:e.target.value}))} placeholder="+61..." /></div>
+          <div><label className="block text-sm mb-1" htmlFor="rp">Password</label><input id="rp" type="password" className="w-full rounded-md border px-3 py-2" value={form.password} onChange={(e)=>setForm(f=>({...f, password:e.target.value}))} required /></div>
+          {error ? <div className="text-sm text-red-600">{error}</div> : null}
+          <button className="w-full h-10 rounded-md bg-sky-600 text-white hover:bg-sky-700">Create account</button>
+        </form>
+      </div></div><Footer /></main>
+  )
+}
+
+function ProfilePage() {
+  const user = React.useMemo(()=>{ try { return JSON.parse(localStorage.getItem('am_user') || 'null') } catch { return null }}, [])
+  type B = { id:number; car?: { make:string; model:string }; car_id:number; start_date:string; end_date:string; status:string; total_cost?:number }
+  const bookings = React.useMemo(()=>{ try { return JSON.parse(localStorage.getItem('am_bookings') || '[]') as B[] } catch { return [] as B[] }}, [])
+  return (
+    <main className="min-h-screen flex flex-col bg-white"><Header />
+      <div className="container mx-auto px-4 py-8">
+        {!user ? (
+          <div className="text-muted-foreground">You are not signed in. Please <a href="/login" className="underline text-sky-700">sign in</a>.</div>
+        ) : (
+          <div className="grid lg:grid-cols-3 gap-6">
+            <section className="lg:col-span-1 space-y-2">
+              <h1 className="text-2xl font-semibold text-slate-900">Welcome{user.first_name ? `, ${user.first_name}` : ''}</h1>
+              <p className="text-sm text-slate-600">{user.email}</p>
+              {typeof user.loyalty_points === 'number' ? (
+                <p className="text-sm text-slate-700">Loyalty points: {user.loyalty_points}</p>
+              ) : null}
+            </section>
+            <section className="lg:col-span-2">
+              <h2 className="text-xl font-semibold mb-2 text-slate-900">Your bookings</h2>
+              {bookings.length === 0 ? (
+                <div className="text-sm text-slate-600">No bookings yet.</div>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border">
+                  <table className="w-full text-sm"><thead className="text-left text-slate-600 bg-sky-50/60"><tr><th className="py-2 px-3">Booking</th><th className="px-3">Car</th><th className="px-3">Period</th><th className="px-3">Status</th><th className="px-3">Total</th></tr></thead>
+                    <tbody>
+                      {bookings.map((b) => (
+                        <tr key={b.id} className="border-t"><td className="py-3 px-3">#{b.id}</td><td className="px-3">{b.car ? `${b.car.make} ${b.car.model}` : `ID ${b.car_id}`}</td><td className="px-3">{new Date(b.start_date).toLocaleString()} – {new Date(b.end_date).toLocaleString()}</td><td className="px-3 capitalize">{b.status}</td><td className="px-3">${(b.total_cost ?? 0).toLocaleString()}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+      </div>
+      <Footer />
+    </main>
+  )
+}
+
+function pageShell(title: string, body: React.ReactNode) {
+  return (
+    <main className="min-h-screen flex flex-col bg-white">
+      <Header />
+      <div className="container mx-auto px-4 py-10 max-w-3xl space-y-6">
+        <h1 className="text-4xl font-semibold text-slate-900">{title}</h1>
+        {body}
+      </div>
+      <Footer />
+    </main>
+  )
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/cars" element={<CarsPage />} />
+        <Route path="/cars/:id" element={<CarDetailsPage />} />
+        <Route path="/book/:id" element={<BookPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/admin/setup" element={<AdminSetup />} />
+        <Route path="*" element={<HomePage />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
