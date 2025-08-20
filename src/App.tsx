@@ -11,6 +11,7 @@ import { BrowserRouter, Routes, Route, Link, useParams, useNavigate, useSearchPa
 import * as React from 'react'
 import type { Booking } from './lib/types'
 import { toast } from './components/Toaster'
+import PaymentSection from './components/PaymentSection'
 
 const Badge = ({ children }: { children: ReactNode }) => (
   <span className="inline-flex items-center rounded-full bg-white/60 backdrop-blur px-3 py-1 text-xs font-medium text-sky-700 ring-1 ring-sky-100">{children}</span>
@@ -314,6 +315,9 @@ function BookPage() {
   const [promo, setPromo] = React.useState<string>('')
   const [phone, setPhone] = React.useState<string>('')
   const [extras, setExtras] = React.useState({ gps: false, childSeat: false, addDriver: false })
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = React.useState<string>('')
+  const [isProcessingPayment, setIsProcessingPayment] = React.useState(false)
+  const [showPaymentSection, setShowPaymentSection] = React.useState(false)
 
   const car = DEMO_CARS.find(c => String(c.id) === String(id)) || DEMO_CARS[0]
   const days = React.useMemo(() => (start && end ? Math.max(0, Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / (1000*60*60*24))) : 0), [start, end])
@@ -325,33 +329,52 @@ function BookPage() {
 
   async function submit() {
     if (!start || !end || !phone) return
-    const idNum = Math.floor(Math.random()*100000)
-    const total = totalEstimate
-    const booking: Booking = { 
-      id: idNum, 
-      user_id: 1, // Default user ID for demo
-      car_id: Number(id), 
-      start_date: new Date(start).toISOString(), 
-      end_date: new Date(end).toISOString(), 
-      pickup_location: pickup, 
-      return_location: ret, 
-      special_requests: special || undefined, 
-      promo_code: promo || undefined, 
-      phone_number: phone, 
-      status: 'pending', 
-      payment_status: 'pending',
-      total_cost: total,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+    setShowPaymentSection(true)
+  }
+
+  async function handlePaymentSubmit() {
+    if (!selectedPaymentMethod) {
+      toast('Please select a payment method')
+      return
     }
-    try {
-      const mod = await import('./lib/auth')
-      mod.addBooking(booking)
-    } catch {
-      // noop in demo
-    }
-    toast('Booking confirmed')
-    navigate(`/profile?booking=${idNum}`)
+    
+    setIsProcessingPayment(true)
+    
+    // Simulate payment processing
+    setTimeout(() => {
+      const idNum = Math.floor(Math.random()*100000)
+      const total = totalEstimate
+      const booking: Booking = { 
+        id: idNum, 
+        user_id: 1, // Default user ID for demo
+        car_id: Number(id), 
+        start_date: new Date(start).toISOString(), 
+        end_date: new Date(end).toISOString(), 
+        pickup_location: pickup, 
+        return_location: ret, 
+        special_requests: special || undefined, 
+        promo_code: promo || undefined, 
+        phone_number: phone, 
+        status: 'confirmed', 
+        payment_status: 'paid',
+        total_cost: total,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      try {
+        const mod = import('./lib/auth')
+        mod.then(auth => auth.addBooking(booking))
+      } catch {
+        // noop in demo
+      }
+      setIsProcessingPayment(false)
+      toast(`Payment successful! Booking confirmed with ${selectedPaymentMethod}`)
+      navigate(`/profile?booking=${idNum}`)
+    }, 2000)
+  }
+
+  function handlePaymentMethodSelect(method: string) {
+    setSelectedPaymentMethod(method)
   }
 
   return (
@@ -359,33 +382,106 @@ function BookPage() {
       <Header />
       <div className="container mx-auto px-4 py-8 grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <div className="border rounded-lg p-4 space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div><label className="block text-sm mb-1" htmlFor="start">Start Date</label><input id="start" type="datetime-local" className="w-full rounded-md border px-3 py-2" value={start} onChange={(e)=>setStart(e.target.value)} /></div>
-              <div><label className="block text-sm mb-1" htmlFor="end">End Date</label><input id="end" type="datetime-local" className="w-full rounded-md border px-3 py-2" value={end} onChange={(e)=>setEnd(e.target.value)} /></div>
-            </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div><label className="block text-sm mb-1" htmlFor="pickup">Pickup Location</label><input id="pickup" className="w-full rounded-md border px-3 py-2" value={pickup} onChange={(e)=>setPickup(e.target.value)} placeholder="Dandenong VIC" /></div>
-              <div><label className="block text-sm mb-1" htmlFor="return">Return Location</label><input id="return" className="w-full rounded-md border px-3 py-2" value={ret} onChange={(e)=>setRet(e.target.value)} placeholder="Dandenong VIC" /></div>
-            </div>
-          <div className="space-y-2">
-              <label className="block text-sm">Extras</label>
-              <div className="grid sm:grid-cols-3 gap-3 text-sm">
-                <label className="flex items-center gap-2"><input type="checkbox" checked={extras.gps} onChange={(e)=>setExtras(v=>({...v,gps:e.target.checked}))} /> GPS ($10/day)</label>
-                <label className="flex items-center gap-2"><input type="checkbox" checked={extras.childSeat} onChange={(e)=>setExtras(v=>({...v,childSeat:e.target.checked}))} /> Child seat ($8/day)</label>
-                <label className="flex items-center gap-2"><input type="checkbox" checked={extras.addDriver} onChange={(e)=>setExtras(v=>({...v,addDriver:e.target.checked}))} /> Additional driver ($20/week)</label>
+          {!showPaymentSection ? (
+            <div className="border rounded-lg p-4 space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div><label className="block text-sm mb-1" htmlFor="start">Start Date</label><input id="start" type="datetime-local" className="w-full rounded-md border px-3 py-2" value={start} onChange={(e)=>setStart(e.target.value)} /></div>
+                <div><label className="block text-sm mb-1" htmlFor="end">End Date</label><input id="end" type="datetime-local" className="w-full rounded-md border px-3 py-2" value={end} onChange={(e)=>setEnd(e.target.value)} /></div>
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div><label className="block text-sm mb-1" htmlFor="pickup">Pickup Location</label><input id="pickup" className="w-full rounded-md border px-3 py-2" value={pickup} onChange={(e)=>setPickup(e.target.value)} placeholder="Dandenong VIC" /></div>
+                <div><label className="block text-sm mb-1" htmlFor="return">Return Location</label><input id="return" className="w-full rounded-md border px-3 py-2" value={ret} onChange={(e)=>setRet(e.target.value)} placeholder="Dandenong VIC" /></div>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm">Extras</label>
+                <div className="grid sm:grid-cols-3 gap-3 text-sm">
+                  <label className="flex items-center gap-2"><input type="checkbox" checked={extras.gps} onChange={(e)=>setExtras(v=>({...v,gps:e.target.checked}))} /> GPS ($10/day)</label>
+                  <label className="flex items-center gap-2"><input type="checkbox" checked={extras.childSeat} onChange={(e)=>setExtras(v=>({...v,childSeat:e.target.checked}))} /> Child seat ($8/day)</label>
+                  <label className="flex items-center gap-2"><input type="checkbox" checked={extras.addDriver} onChange={(e)=>setExtras(v=>({...v,addDriver:e.target.checked}))} /> Additional driver ($20/week)</label>
+                </div>
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div><label className="block text-sm mb-1" htmlFor="phone">Phone Number</label><input id="phone" className="w-full rounded-md border px-3 py-2" value={phone} onChange={(e)=>setPhone(e.target.value)} placeholder="+61..." /></div>
+                <div><label className="block text-sm mb-1" htmlFor="promo">Promo Code</label><input id="promo" className="w-full rounded-md border px-3 py-2" value={promo} onChange={(e)=>setPromo(e.target.value)} placeholder="e.g. WELCOME10" /></div>
+              </div>
+              <div>
+                <label className="block text-sm mb-1" htmlFor="special">Special Requests</label>
+                <textarea id="special" className="w-full rounded-md border px-3 py-2" rows={4} value={special} onChange={(e)=>setSpecial(e.target.value)} />
+              </div>
+              <div className="flex gap-3">
+                <button onClick={submit} className="h-10 px-5 rounded-md bg-sky-600 text-white hover:bg-sky-700">Continue to Payment</button>
+                <Link to={`/cars/${id}`}>
+                  <button className="h-10 px-5 rounded-md border bg-white hover:border-sky-300">Back to car</button>
+                </Link>
               </div>
             </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div><label className="block text-sm mb-1" htmlFor="phone">Phone Number</label><input id="phone" className="w-full rounded-md border px-3 py-2" value={phone} onChange={(e)=>setPhone(e.target.value)} placeholder="+61..." /></div>
-              <div><label className="block text-sm mb-1" htmlFor="promo">Promo Code</label><input id="promo" className="w-full rounded-md border px-3 py-2" value={promo} onChange={(e)=>setPromo(e.target.value)} placeholder="e.g. WELCOME10" /></div>
+          ) : (
+            <div className="space-y-6">
+              {/* Booking Summary */}
+              <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Booking Summary</h3>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-3">Rental Details</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Vehicle:</span>
+                        <span className="font-medium">{car ? `${car.year} ${car.make} ${car.model}` : '—'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Duration:</span>
+                        <span className="font-medium">{days} day(s)</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Pickup:</span>
+                        <span className="font-medium">{pickup}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Return:</span>
+                        <span className="font-medium">{ret}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-3">Cost Breakdown</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Base Rate:</span>
+                        <span className="font-medium">${base.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Extras:</span>
+                        <span className="font-medium">${extrasTotal.toLocaleString()}</span>
+                      </div>
+                      <div className="border-t pt-2 flex justify-between font-semibold">
+                        <span className="text-gray-900">Total:</span>
+                        <span className="text-sky-600">${totalEstimate.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Section */}
+              <PaymentSection
+                totalAmount={totalEstimate}
+                onPaymentMethodSelect={handlePaymentMethodSelect}
+                selectedPaymentMethod={selectedPaymentMethod}
+                onPaymentSubmit={handlePaymentSubmit}
+                isProcessing={isProcessingPayment}
+              />
+
+              {/* Back Button */}
+              <div className="flex justify-start">
+                <button 
+                  onClick={() => setShowPaymentSection(false)}
+                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  ← Back to Booking Details
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm mb-1" htmlFor="special">Special Requests</label>
-              <textarea id="special" className="w-full rounded-md border px-3 py-2" rows={4} value={special} onChange={(e)=>setSpecial(e.target.value)} />
-            </div>
-            <div className="flex gap-3"><button onClick={submit} className="h-10 px-5 rounded-md bg-sky-600 text-white hover:bg-sky-700">Confirm Booking</button><Link to={`/cars/${id}`}><button className="h-10 px-5 rounded-md border bg-white hover:border-sky-300">Back to car</button></Link></div>
-          </div>
+          )}
         </div>
         <aside className="space-y-4">
           <div className="border rounded-lg p-4 space-y-2 text-sm">
