@@ -40,6 +40,24 @@ const Header = () => {
             </>
           )}
         </div>
+
+        {/* Mobile auth/actions */}
+        <div className="flex md:hidden items-center gap-2">
+          {user ? (
+            <>
+              {user.role === 'admin' && (
+                <a href="/admin" className="h-8 px-2 inline-flex items-center justify-center rounded-md bg-sky-600 text-white text-xs hover:bg-sky-700">Admin</a>
+              )}
+              <a href="/profile" className="h-8 px-2 inline-flex items-center justify-center rounded-md text-xs hover:text-sky-700">Profile</a>
+              <button onClick={handleLogout} className="h-8 px-2 inline-flex items-center justify-center rounded-md border bg-transparent text-xs hover:border-sky-300">Logout</button>
+            </>
+          ) : (
+            <>
+              <a href="/login" className="h-8 px-2 inline-flex items-center justify-center rounded-md border bg-transparent text-xs hover:border-sky-300">Sign in</a>
+              <a href="/register" className="h-8 px-2 inline-flex items-center justify-center rounded-md bg-sky-600 text-white text-xs hover:bg-sky-700 shadow-sm">Create</a>
+            </>
+          )}
+        </div>
       </div>
     </header>
   )
