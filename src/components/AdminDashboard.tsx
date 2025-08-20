@@ -324,9 +324,9 @@ const AdminDashboard = () => {
                           borderRadius: '8px',
                           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                         }}
-                        formatter={(value, name) => [
-                          name === 'revenue' ? `$${value}` : value,
-                          name === 'revenue' ? 'Revenue' : 'Bookings'
+                        formatter={(value, _name) => [
+                          _name === 'revenue' ? `$${value}` : value,
+                          _name === 'revenue' ? 'Revenue' : 'Bookings'
                         ]}
                       />
                       <Legend />
@@ -444,7 +444,7 @@ const AdminDashboard = () => {
                           borderRadius: '8px',
                           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                         }}
-                        formatter={(value, name) => [value, 'Vehicles']}
+                        formatter={(value) => [value, 'Vehicles']}
                       />
                       <Bar 
                         dataKey="count" 
@@ -1838,9 +1838,9 @@ const AdminDashboard = () => {
                          borderRadius: '8px',
                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                        }}
-                       formatter={(value, name) => [
-                         name === 'revenue' ? `$${Number(value).toLocaleString()}` : value,
-                         name === 'revenue' ? 'Revenue' : 'Bookings'
+                       formatter={(value, _name) => [
+                         _name === 'revenue' ? `$${Number(value).toLocaleString()}` : value,
+                         _name === 'revenue' ? 'Revenue' : 'Bookings'
                        ]}
                      />
                      <Legend />
@@ -1957,7 +1957,7 @@ const AdminDashboard = () => {
                            borderRadius: '8px',
                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                          }}
-                         formatter={(value, name) => [value, 'Vehicles']}
+                         formatter={(value) => [value, 'Vehicles']}
                        />
                        <Bar 
                          dataKey="count" 

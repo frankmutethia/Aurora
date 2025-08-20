@@ -116,14 +116,6 @@ const CarManagement = () => {
     }
   }
 
-  const handleStatusChange = (carId: number, newStatus: CarStatus) => {
-    setCars(prev => prev.map(car => 
-      car.id === carId 
-        ? { ...car, status: newStatus, updated_at: new Date().toISOString() }
-        : car
-    ))
-  }
-
   const getStatusColor = (status: CarStatus) => {
     const colors = {
       available: 'bg-green-100 text-green-800',
