@@ -54,4 +54,14 @@ export function addBooking(b: Booking) {
   localStorage.setItem(BOOKINGS_KEY, JSON.stringify(list))
 }
 
+export function updateBooking(id: number, updater: (b: Booking) => Booking) {
+  const list = listBookings()
+  const updated = list.map(b => (b.id === id ? updater(b) : b))
+  localStorage.setItem(BOOKINGS_KEY, JSON.stringify(updated))
+}
+
+export function getBooking(id: number): Booking | null {
+  return listBookings().find(b => b.id === id) || null
+}
+
 

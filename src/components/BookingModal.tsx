@@ -1,6 +1,7 @@
 import * as React from 'react'
 import type { Booking } from '../lib/types'
 import { DEMO_CARS, DEMO_USERS } from '../lib/demo-data'
+import { getBooking, updateBooking } from '../lib/auth'
 
 interface BookingModalProps {
   booking: Booking
@@ -20,6 +21,18 @@ const BookingModal: React.FC<BookingModalProps> = ({
   const startDate = new Date(booking.start_date)
   const endDate = new Date(booking.end_date)
   const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+
+  const [licenseUrl, setLicenseUrl] = React.useState<string>(booking.driver_license_url || '')
+  const [pickupPhotos, setPickupPhotos] = React.useState<string[]>(booking.pickup_photos || [])
+  const [returnPhotos, setReturnPhotos] = React.useState<string[]>(booking.return_photos || [])
+  const [bondAmount, setBondAmount] = React.useState<number>(booking.bond_amount || 0)
+  const [week1Amount, setWeek1Amount] = React.useState<number>(booking.week1_amount || 0)
+  const [pickupOdo, setPickupOdo] = React.useState<number>(booking.pickup_odometer || 0)
+  const [returnOdo, setReturnOdo] = React.useState<number>(booking.return_odometer || 0)
+
+  function persistPartial(update: Partial<Booking>) {
+    updateBooking(booking.id, (b) => ({ ...b, ...update, updated_at: new Date().toISOString() }))
+  }
 
   const getStatusColor = (status: string) => {
     const colors = {
@@ -118,6 +131,53 @@ const BookingModal: React.FC<BookingModalProps> = ({
                     <option value="overdue">Overdue</option>
                   </select>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Collection / Return (Handover) */}
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Collection & Return</h3>
+            <div className="grid md:grid-cols-2 gap-6 text-sm">
+              <div className="space-y-3">
+                <h4 className="font-medium text-gray-900">Collection (Pickup)</h4>
+                <div>
+                  <label className="block text-gray-700 mb-1">Driver License URL</label>
+                  <input className="w-full border rounded px-3 py-2" placeholder="https://..." value={licenseUrl} onChange={(e)=>{ setLicenseUrl(e.target.value); persistPartial({ driver_license_url: e.target.value }) }} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-gray-700 mb-1">Pickup Odometer (km)</label>
+                    <input type="number" className="w-full border rounded px-3 py-2" value={pickupOdo} onChange={(e)=>{ const v=Number(e.target.value)||0; setPickupOdo(v); persistPartial({ pickup_odometer: v }) }} />
+                  </div>
+                  <div>
+                    <label className="block text-gray-700 mb-1">Return Odometer (km)</label>
+                    <input type="number" className="w-full border rounded px-3 py-2" value={returnOdo} onChange={(e)=>{ const v=Number(e.target.value)||0; setReturnOdo(v); persistPartial({ return_odometer: v }) }} />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-gray-700 mb-1">Pickup Photos (comma-separated URLs)</label>
+                  <input className="w-full border rounded px-3 py-2" placeholder="https://... , https://..." value={pickupPhotos.join(', ')} onChange={(e)=>{ const arr=e.target.value.split(',').map(s=>s.trim()).filter(Boolean); setPickupPhotos(arr); persistPartial({ pickup_photos: arr }) }} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-gray-700 mb-1">Bond Amount</label>
+                    <input type="number" className="w-full border rounded px-3 py-2" value={bondAmount} onChange={(e)=>{ const v=Number(e.target.value)||0; setBondAmount(v); persistPartial({ bond_amount: v }) }} />
+                  </div>
+                  <div>
+                    <label className="block text-gray-700 mb-1">Week 1 Amount</label>
+                    <input type="number" className="w-full border rounded px-3 py-2" value={week1Amount} onChange={(e)=>{ const v=Number(e.target.value)||0; setWeek1Amount(v); persistPartial({ week1_amount: v }) }} />
+                  </div>
+                </div>
+                <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" onClick={()=>persistPartial({ collection_completed_at: new Date().toISOString() })}>Mark Collection Complete</button>
+              </div>
+              <div className="space-y-3">
+                <h4 className="font-medium text-gray-900">Return (Drop-off)</h4>
+                <div>
+                  <label className="block text-gray-700 mb-1">Return Photos (comma-separated URLs)</label>
+                  <input className="w-full border rounded px-3 py-2" placeholder="https://... , https://..." value={returnPhotos.join(', ')} onChange={(e)=>{ const arr=e.target.value.split(',').map(s=>s.trim()).filter(Boolean); setReturnPhotos(arr); persistPartial({ return_photos: arr }) }} />
+                </div>
+                <button className="px-4 py-2 bg-slate-600 text-white rounded hover:bg-slate-700" onClick={()=>persistPartial({ return_completed_at: new Date().toISOString() })}>Mark Return Complete</button>
               </div>
             </div>
           </div>
@@ -322,11 +382,18 @@ const BookingModal: React.FC<BookingModalProps> = ({
             >
               Close
             </button>
-            <button className="px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors">
-              Send Invoice
+            <button className="px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors" onClick={()=>{
+              const existing = getBooking(booking.id) || booking
+              persistPartial({ invoice_id: existing.invoice_id || `INV-${booking.id}`, invoice_status: 'sent', invoice_created_at: new Date().toISOString(), payment_status: 'invoice_sent' })
+              onPaymentUpdate(booking.id, 'invoice_sent')
+            }}>
+              Create/Send Invoice
             </button>
-            <button className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-              Confirm Payment
+            <button className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors" onClick={()=>{
+              persistPartial({ invoice_status: 'paid', payment_status: 'paid' })
+              onPaymentUpdate(booking.id, 'paid')
+            }}>
+              Mark Paid
             </button>
           </div>
         </div>

@@ -17,6 +17,7 @@ export type Profile = {
 export type CarStatus = 'available' | 'booked' | 'in_use' | 'under_maintenance' | 'due_for_service'
 
 export type CarCategory = 'SUV' | 'Sedan' | 'Hatchback' | 'Van' | 'Luxury' | 'Electric'
+export type Agency = 'Agency A' | 'Agency B' | 'Agency C'
 
 export type FuelType = 'Petrol' | 'Diesel' | 'Hybrid' | 'Electric'
 
@@ -28,6 +29,7 @@ export type Car = {
   model: string
   year: number
   license_plate: string
+  agency: Agency
   category: CarCategory
   transmission: Transmission
   fuel_type: FuelType
@@ -74,6 +76,18 @@ export type Booking = {
   fuel_level_return?: number
   pickup_photo_url?: string
   return_photo_url?: string
+  // Handover additions
+  driver_license_url?: string
+  pickup_photos?: string[]
+  return_photos?: string[]
+  bond_amount?: number
+  week1_amount?: number
+  collection_completed_at?: string
+  return_completed_at?: string
+  // Invoicing additions
+  invoice_id?: string
+  invoice_status?: 'draft' | 'sent' | 'paid' | 'void'
+  invoice_created_at?: string
   admin_notes?: string
   created_at: string
   updated_at: string

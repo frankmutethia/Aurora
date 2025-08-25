@@ -144,6 +144,26 @@ function HomePage() {
         </div>
       </SectionContainer>
 
+      {/* Australia imagery / locations */}
+      <SectionContainer className="py-12 md:py-16" id="about">
+        <h2 className="text-2xl md:text-3xl font-semibold mb-6 text-slate-900">Explore Melbourne & Dandenong</h2>
+        <p className="text-slate-700 mb-4">Pickup and returns available around Dandenong VIC. Discover iconic spots across Melbourne on your next trip.</p>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[
+            '/images/australia/dan-freeman-7Zb7kUyQg1E-unsplash.jpg',
+            '/images/australia/photoholgic-1GFUOji-yck-unsplash.jpg',
+            '/images/australia/photoholgic-jK9dT34TfuI-unsplash.jpg',
+            '/images/australia/iStock_000046244704_Full2.jpg',
+            '/images/australia/1533817792-australiasigndepositphotos.avif',
+            '/images/australia/images.jpg'
+          ].map((src, i) => (
+            <div key={i} className="rounded-lg overflow-hidden border bg-white">
+              <img src={src} onError={(e)=>{(e.currentTarget as HTMLImageElement).src='/images/hero-light-blue-2.png'}} alt="Australia location" className="w-full h-44 object-cover" />
+            </div>
+          ))}
+        </div>
+      </SectionContainer>
+
       <Footer />
     </main>
   )
@@ -499,9 +519,55 @@ function BookPage() {
   )
 }
 
-function AboutPage() { return pageShell('About Smart Rentals', (<p className="text-slate-700">We provide affordable, reliable, and flexible car rental solutions tailored for rideshare, private use, and long-term customers in Melbourne.</p>)) }
-function ContactPage() { return pageShell('Contact us', (<div className="text-sm space-y-1 text-slate-700"><p>Smart Rentals Pty Ltd</p><p>Unit 2/11 Burrows Avenue, Dandenong VIC 3175</p><p>Phone: 0420 759 910 / 0416 003 905</p><p>Email: <a href="mailto:smartrentals58@gmail.com" className="underline text-sky-700">smartrentals58@gmail.com</a></p></div>)) }
-function TermsPage() { return pageShell('Terms and Conditions', (<div className="text-sm leading-6 text-slate-700 space-y-3"><p>Key terms summary and full contract placeholder.</p></div>)) }
+function AboutPage() { return pageShell('About Smart Car Rentals', (
+  <div className="text-slate-700 space-y-4">
+    <p>Smart Car Rentals Pty Ltd is dedicated to providing affordable, reliable, and flexible car rental solutions tailored for rideshare, private use, and long-term customers across Melbourne.</p>
+    <div>
+      <h3 className="font-semibold text-slate-900">Mission</h3>
+      <p>To provide affordable, reliable, and flexible car rental solutions tailored for rideshare, private use, and long-term customers.</p>
+    </div>
+    <div>
+      <h3 className="font-semibold text-slate-900">Vision</h3>
+      <p>To be the leading choice for car rentals in Melbourne by focusing on customer satisfaction, vehicle quality, and seamless booking experiences.</p>
+    </div>
+    <div>
+      <h3 className="font-semibold text-slate-900">Values</h3>
+      <ul className="list-disc pl-5 space-y-1">
+        <li>Reliability</li>
+        <li>Affordability</li>
+        <li>Customer Satisfaction</li>
+        <li>Innovation</li>
+      </ul>
+    </div>
+    <p className="text-sky-700/90 font-medium">Smart Car Rentals</p>
+  </div>
+)) }
+function ContactPage() { return pageShell('Contact us', (
+  <div className="text-sm space-y-1 text-slate-700">
+    <p>Smart Car Rentals Pty Ltd</p>
+    <p>Unit 2/11 Burrows Avenue, Dandenong VIC 3175</p>
+    <p>Phone: 0420 759 910</p>
+    <p>Email: <a href="mailto:smartrentals1@gmail.com" className="underline text-sky-700">smartrentals1@gmail.com</a></p>
+  </div>
+)) }
+function TermsPage() { return pageShell('Terms and Conditions', (
+  <div className="text-sm leading-6 text-slate-700 space-y-4">
+    <p><span className="font-semibold">Company:</span> Smart Car Rentals Pty Ltd</p>
+    <p><span className="font-semibold">Tagline:</span> Smart Car Rentals</p>
+    <div className="space-y-2">
+      <h3 className="font-semibold text-slate-900">Rental Agreement Summary</h3>
+      <ul className="list-disc pl-5 space-y-1">
+        <li>Valid driver's license and payment method required.</li>
+        <li>Renter is responsible for tolls, fines, and fuel unless otherwise stated.</li>
+        <li>Mileage and usage must comply with vehicle category guidelines.</li>
+        <li>Vehicle condition photos should be taken at pickup and return.</li>
+        <li>Insurance excess, bond, and fees (if applicable) are disclosed at booking.</li>
+        <li>Late returns may incur additional daily charges.</li>
+      </ul>
+    </div>
+    <p>For full terms and conditions or tailored agreements for rideshare and long-term rentals, please contact us at <a href="mailto:smartrentals1@gmail.com" className="underline">smartrentals1@gmail.com</a> or 0420 759 910.</p>
+  </div>
+)) }
 
 function LoginPage() {
   const navigate = useNavigate()

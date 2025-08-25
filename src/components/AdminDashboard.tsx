@@ -872,6 +872,9 @@ const AdminDashboard = () => {
                         <span className="text-sm font-semibold text-gray-700">Status</span>
                       </th>
                       <th className="px-6 py-4 text-left">
+                        <span className="text-sm font-semibold text-gray-700">Invoice</span>
+                      </th>
+                      <th className="px-6 py-4 text-left">
                         <span className="text-sm font-semibold text-gray-700">Payment</span>
                       </th>
                       <th className="px-6 py-4 text-left">
@@ -950,6 +953,12 @@ const AdminDashboard = () => {
                                 Special requests included
                               </div>
                             )}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="space-y-1">
+                              <div className="text-sm text-gray-700">{booking.invoice_id || '—'}</div>
+                              <StatusBadge status={booking.invoice_status || 'draft'}>{(booking.invoice_status || 'draft')}</StatusBadge>
+                            </div>
                           </td>
                           <td className="px-6 py-4">
                             <div>

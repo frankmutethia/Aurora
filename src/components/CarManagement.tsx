@@ -1,5 +1,5 @@
 import * as React from 'react'
-import type { Car, CarCategory, FuelType, Transmission, CarStatus } from '../lib/types'
+import type { Car, CarCategory, FuelType, Transmission, CarStatus, Agency } from '../lib/types'
 import { DEMO_CARS } from '../lib/demo-data'
 
 interface CarFormData {
@@ -7,6 +7,7 @@ interface CarFormData {
   model: string
   year: number
   license_plate: string
+  agency: Agency
   category: CarCategory
   transmission: Transmission
   fuel_type: FuelType
@@ -30,6 +31,7 @@ const CarManagement = () => {
     model: '',
     year: new Date().getFullYear(),
     license_plate: '',
+    agency: 'Agency A',
     category: 'Sedan',
     transmission: 'Automatic',
     fuel_type: 'Petrol',
@@ -51,6 +53,7 @@ const CarManagement = () => {
       model: '',
       year: new Date().getFullYear(),
       license_plate: '',
+      agency: 'Agency A',
       category: 'Sedan',
       transmission: 'Automatic',
       fuel_type: 'Petrol',
@@ -84,6 +87,7 @@ const CarManagement = () => {
       model: car.model,
       year: car.year,
       license_plate: car.license_plate,
+      agency: car.agency,
       category: car.category,
       transmission: car.transmission,
       fuel_type: car.fuel_type,
@@ -368,6 +372,10 @@ const CarManagement = () => {
                 
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Agency:</span>
+                    <span className="font-medium">{car.agency}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
                     <span className="text-gray-600">License:</span>
                     <span className="font-medium">{car.license_plate}</span>
                   </div>
@@ -592,6 +600,22 @@ const CarManagement = () => {
                     required
                     aria-label="License plate"
                   />
+                </div>
+
+                <div>
+                  <label htmlFor="agency" className="block text-sm font-medium text-gray-700 mb-2">Agency</label>
+                  <select
+                    id="agency"
+                    value={formData.agency}
+                    onChange={(e) => handleInputChange('agency', e.target.value as Agency)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    required
+                    aria-label="Car agency"
+                  >
+                    <option value="Agency A">Agency A</option>
+                    <option value="Agency B">Agency B</option>
+                    <option value="Agency C">Agency C</option>
+                  </select>
                 </div>
 
                 <div>
