@@ -8,6 +8,8 @@ interface CarFormData {
   year: number
   license_plate: string
   agency: Agency
+  vin?: string
+  bond_amount?: number
   category: CarCategory
   transmission: Transmission
   fuel_type: FuelType
@@ -32,6 +34,8 @@ const CarManagement = () => {
     year: new Date().getFullYear(),
     license_plate: '',
     agency: 'Aurora motors',
+    vin: '',
+    bond_amount: 0,
     category: 'Sedan',
     transmission: 'Automatic',
     fuel_type: 'Petrol',
@@ -54,6 +58,8 @@ const CarManagement = () => {
       year: new Date().getFullYear(),
       license_plate: '',
       agency: 'Aurora motors',
+      vin: '',
+      bond_amount: 0,
       category: 'Sedan',
       transmission: 'Automatic',
       fuel_type: 'Petrol',
@@ -88,6 +94,8 @@ const CarManagement = () => {
       year: car.year,
       license_plate: car.license_plate,
       agency: car.agency,
+      vin: car.vin || '',
+      bond_amount: car.bond_amount || 0,
       category: car.category,
       transmission: car.transmission,
       fuel_type: car.fuel_type,
@@ -591,6 +599,19 @@ const CarManagement = () => {
                 </div>
 
                 <div>
+                  <label htmlFor="vin" className="block text-sm font-medium text-gray-700 mb-2">VIN</label>
+                  <input
+                    id="vin"
+                    type="text"
+                    value={formData.vin}
+                    onChange={(e) => handleInputChange('vin', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    placeholder="e.g., 5TDLB3CH50S130282"
+                    aria-label="Vehicle VIN"
+                  />
+                </div>
+
+                <div>
                   <label htmlFor="license" className="block text-sm font-medium text-gray-700 mb-2">License Plate</label>
                   <input
                     id="license"
@@ -698,6 +719,20 @@ const CarManagement = () => {
                     step="0.01"
                     required
                     aria-label="Daily rental rate"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="bond" className="block text-sm font-medium text-gray-700 mb-2">Bond Amount ($)</label>
+                  <input
+                    id="bond"
+                    type="number"
+                    value={formData.bond_amount || 0}
+                    onChange={(e) => handleInputChange('bond_amount', parseFloat(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    min="0"
+                    step="0.01"
+                    aria-label="Bond amount"
                   />
                 </div>
 

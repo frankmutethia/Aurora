@@ -42,6 +42,8 @@ export type Car = {
   year: number
   license_plate: string
   agency: Agency
+  vin?: string
+  bond_amount?: number
   category: CarCategory
   transmission: Transmission
   fuel_type: FuelType
