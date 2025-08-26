@@ -1,4 +1,4 @@
-import type { Car, Booking, Profile, UsageLog, ServiceRecord, AgencyLocation } from './types'
+import type { Car, Booking, Profile, UsageLog, ServiceRecord, AgencyLocation, Agency } from './types'
 
 // Agency Location Data
 export const AGENCY_LOCATIONS: AgencyLocation[] = [
