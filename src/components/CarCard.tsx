@@ -13,8 +13,8 @@ const CarCard: React.FC<{ car: Car }> = ({ car }) => {
       <div className="space-y-2 p-4">
         <div className="text-base font-semibold">{title}</div>
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-          <span className="rounded border px-2 py-0.5 bg-white">{car.agency}</span>
-          <span className="rounded border px-2 py-0.5 bg-sky-50 text-sky-700">{car.category}</span>
+          <span className="rounded border px-2 py-0.5 bg-sky-50 text-sky-700">{car.agency}</span>
+          <span className="rounded border px-2 py-0.5 bg-white">{car.category}</span>
           <span className="rounded border px-2 py-0.5">{car.transmission}</span>
           <span className="rounded border px-2 py-0.5">{car.fuel_type}</span>
           <span className="rounded border px-2 py-0.5">{car.seats} seats</span>

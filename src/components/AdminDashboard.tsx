@@ -8,6 +8,7 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
+import { toast } from './Toaster'
 
 // Sidebar component
 const AdminSidebar = ({ isOpen, activeSection, onSectionChange }: { 
@@ -123,11 +124,61 @@ const AdminDashboard = () => {
   const [activeSection, setActiveSection] = React.useState('dashboard')
   const [selectedBooking, setSelectedBooking] = React.useState<Booking | null>(null)
   const [showBookingModal, setShowBookingModal] = React.useState(false)
+  // Bookings filters
+  const [bookingSearch, setBookingSearch] = React.useState('')
+  const [bookingStatus, setBookingStatus] = React.useState('')
+  const [bookingPayment, setBookingPayment] = React.useState('')
+  const [bookingDateRange, setBookingDateRange] = React.useState('')
 
   React.useEffect(() => {
     const currentUser = getCurrentUser()
     setUser(currentUser)
   }, [])
+
+  // Compute filtered bookings; when filters are empty ("All"), show everything including completed/returned
+  const filteredBookings = React.useMemo(() => {
+    let list = [...DEMO_BOOKINGS]
+    // Status
+    if (bookingStatus) list = list.filter(b => b.status === bookingStatus)
+    // Payment
+    if (bookingPayment) list = list.filter(b => b.payment_status === bookingPayment)
+    // Date range (based on start_date)
+    if (bookingDateRange) {
+      const now = new Date()
+      let from: Date | null = null
+      if (bookingDateRange === 'today') {
+        from = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      } else if (bookingDateRange === 'week') {
+        from = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+      } else if (bookingDateRange === 'month') {
+        from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+      } else if (bookingDateRange === 'quarter') {
+        from = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
+      }
+      if (from) {
+        list = list.filter(b => new Date(b.start_date) >= from)
+      }
+    }
+    // Search text across booking id, user name/email, car title
+    const q = bookingSearch.trim().toLowerCase()
+    if (q) {
+      list = list.filter(b => {
+        const idMatch = String(b.id).includes(q)
+        const user = DEMO_USERS.find(u => u.id === b.user_id)
+        const userMatch = user ? (
+          `${user.first_name} ${user.last_name}`.toLowerCase().includes(q) ||
+          user.email.toLowerCase().includes(q)
+        ) : false
+        const car = DEMO_CARS.find(c => c.id === b.car_id)
+        const carMatch = car ? (
+          `${car.year} ${car.make} ${car.model}`.toLowerCase().includes(q) ||
+          car.license_plate.toLowerCase().includes(q)
+        ) : false
+        return idMatch || userMatch || carMatch
+      })
+    }
+    return list
+  }, [bookingSearch, bookingStatus, bookingPayment, bookingDateRange])
 
   const handleViewBooking = (booking: Booking) => {
     setSelectedBooking(booking)
@@ -144,6 +195,16 @@ const AdminDashboard = () => {
     // In a real app, this would update the payment status in the database
     console.log(`Updating booking ${bookingId} payment to: ${newPaymentStatus}`)
     console.log('Payment status updated successfully')
+  }
+
+  const handleSendInvoice = (booking: Booking) => {
+    handlePaymentUpdate(booking.id, 'invoice_sent')
+    toast(`Invoice created and sent for booking #${booking.id}`)
+  }
+
+  const handleCancelBooking = (booking: Booking) => {
+    handleStatusUpdate(booking.id, 'cancelled')
+    toast(`Booking #${booking.id} has been cancelled`)
   }
 
   if (!user) {
@@ -751,24 +812,24 @@ const AdminDashboard = () => {
               {/* Quick Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="text-2xl font-bold text-blue-900">{DEMO_BOOKINGS.length}</div>
+                  <div className="text-2xl font-bold text-blue-900">{filteredBookings.length}</div>
                   <div className="text-sm text-blue-700">Total Bookings</div>
                 </div>
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <div className="text-2xl font-bold text-green-900">
-                    {DEMO_BOOKINGS.filter(b => b.status === 'confirmed' || b.status === 'in_progress').length}
+                    {filteredBookings.filter(b => b.status === 'confirmed' || b.status === 'in_progress').length}
                   </div>
                   <div className="text-sm text-green-700">Active Bookings</div>
                 </div>
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <div className="text-2xl font-bold text-yellow-900">
-                    {DEMO_BOOKINGS.filter(b => b.payment_status === 'pending').length}
+                    {filteredBookings.filter(b => b.payment_status === 'pending').length}
                   </div>
                   <div className="text-sm text-yellow-700">Pending Payments</div>
                 </div>
                 <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                   <div className="text-2xl font-bold text-purple-900">
-                    ${DEMO_BOOKINGS.reduce((sum, b) => sum + b.total_cost, 0).toLocaleString()}
+                    ${filteredBookings.reduce((sum, b) => sum + b.total_cost, 0).toLocaleString()}
                   </div>
                   <div className="text-sm text-purple-700">Total Revenue</div>
                 </div>
@@ -786,6 +847,8 @@ const AdminDashboard = () => {
                     placeholder="Search bookings, users, cars..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                     aria-label="Search bookings"
+                    value={bookingSearch}
+                    onChange={(e)=>setBookingSearch(e.target.value)}
                   />
                 </div>
                 <div>
@@ -794,6 +857,8 @@ const AdminDashboard = () => {
                     id="status-filter"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                     aria-label="Filter by booking status"
+                    value={bookingStatus}
+                    onChange={(e)=>setBookingStatus(e.target.value)}
                   >
                     <option value="">All Statuses</option>
                     <option value="pending">Pending</option>
@@ -809,6 +874,8 @@ const AdminDashboard = () => {
                     id="payment-filter"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                     aria-label="Filter by payment status"
+                    value={bookingPayment}
+                    onChange={(e)=>setBookingPayment(e.target.value)}
                   >
                     <option value="">All Payments</option>
                     <option value="pending">Pending</option>
@@ -823,6 +890,8 @@ const AdminDashboard = () => {
                     id="date-filter"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                     aria-label="Filter by date range"
+                    value={bookingDateRange}
+                    onChange={(e)=>setBookingDateRange(e.target.value)}
                   >
                     <option value="">All Dates</option>
                     <option value="today">Today</option>
@@ -840,7 +909,7 @@ const AdminDashboard = () => {
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-gray-900">All Bookings</h3>
                   <div className="text-sm text-gray-600">
-                    Showing {DEMO_BOOKINGS.length} of {DEMO_BOOKINGS.length} bookings
+                    Showing {filteredBookings.length} of {DEMO_BOOKINGS.length} bookings
             </div>
                 </div>
               </div>
@@ -886,7 +955,7 @@ const AdminDashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {DEMO_BOOKINGS.map((booking) => {
+                  {filteredBookings.map((booking) => {
                     const car = DEMO_CARS.find(c => c.id === booking.car_id)
                     const user = DEMO_USERS.find(u => u.id === booking.user_id)
                       const startDate = new Date(booking.start_date)
@@ -991,12 +1060,12 @@ const AdminDashboard = () => {
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
                               </button>
-                              <button className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors" title="Send Invoice" onClick={() => handleViewBooking(booking)}>
+                              <button className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors" title="Send Invoice" onClick={() => handleSendInvoice(booking)}>
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
                               </button>
-                              <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Cancel Booking" onClick={() => handleViewBooking(booking)}>
+                              <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Cancel Booking" onClick={() => handleCancelBooking(booking)}>
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
@@ -1014,7 +1083,7 @@ const AdminDashboard = () => {
               <div className="px-6 py-4 border-t bg-gray-50">
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-gray-600">
-                    Showing 1 to {DEMO_BOOKINGS.length} of {DEMO_BOOKINGS.length} results
+                    Showing 1 to {filteredBookings.length} of {filteredBookings.length} results
                   </div>
                   <div className="flex items-center gap-2">
                     <button className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50">

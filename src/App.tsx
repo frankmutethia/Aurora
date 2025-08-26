@@ -5,8 +5,9 @@ import Footer from './components/Footer'
 import CarCard from './components/CarCard'
 import AdminPage from './components/AdminPage'
 import AdminSetup from './components/AdminSetup'
-import { DEMO_CARS, filterDemoCars } from './lib/demo-data'
+import { DEMO_CARS, filterDemoCars, getAgencyAddress } from './lib/demo-data'
 import { createDemoAdmin } from './lib/demo-admin'
+import { getCurrentUser } from './lib/auth'
 import { BrowserRouter, Routes, Route, Link, useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import * as React from 'react'
 import type { Booking } from './lib/types'
@@ -147,7 +148,7 @@ function HomePage() {
       {/* Australia imagery / locations */}
       <SectionContainer className="py-12 md:py-16" id="about">
         <h2 className="text-2xl md:text-3xl font-semibold mb-6 text-slate-900">Explore Melbourne & Dandenong</h2>
-        <p className="text-slate-700 mb-4">Pickup and returns available around Dandenong VIC. Discover iconic spots across Melbourne on your next trip.</p>
+        <p className="text-slate-700 mb-4">Pickup and returns available at multiple locations across Melbourne. Discover iconic spots across Victoria on your next trip.</p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[
             '/images/australia/dan-freeman-7Zb7kUyQg1E-unsplash.jpg',
@@ -300,7 +301,7 @@ function CarDetailsPage() {
               <Info label="Transmission" value={car.transmission || '—'} />
               <Info label="Fuel" value={car.fuel_type || '—'} />
               <Info label="Seats" value={String(car.seats || '—')} />
-              <Info label="Color" value={'—'} />
+              <Info label="Agency" value={car.agency || '—'} />
             </div>
             <div className="text-xl"><span className="font-semibold">${car.rental_rate_per_day.toLocaleString()}</span><span className="text-muted-foreground"> / day</span></div>
             <div className="flex gap-3">
@@ -329,17 +330,32 @@ function BookPage() {
   const navigate = useNavigate()
   const [start, setStart] = React.useState<string>('')
   const [end, setEnd] = React.useState<string>('')
-  const [pickup, setPickup] = React.useState<string>('Dandenong VIC')
-  const [ret, setRet] = React.useState<string>('Dandenong VIC')
+  const [pickup, setPickup] = React.useState<string>('')
+  const [ret, setRet] = React.useState<string>('')
   const [special, setSpecial] = React.useState<string>('')
   const [promo, setPromo] = React.useState<string>('')
   const [phone, setPhone] = React.useState<string>('')
+  // Driver profile (collect missing)
+  const user = React.useMemo(()=>getCurrentUser(), [])
+  const [driverAddress, setDriverAddress] = React.useState<string>('')
+  const [driverDob, setDriverDob] = React.useState<string>('')
+  const [driverLicenceNo, setDriverLicenceNo] = React.useState<string>('')
+  const [driverLicenceState, setDriverLicenceState] = React.useState<string>('VIC')
   const [extras, setExtras] = React.useState({ gps: false, childSeat: false, addDriver: false })
   const [selectedPaymentMethod, setSelectedPaymentMethod] = React.useState<string>('')
   const [isProcessingPayment, setIsProcessingPayment] = React.useState(false)
   const [showPaymentSection, setShowPaymentSection] = React.useState(false)
 
   const car = DEMO_CARS.find(c => String(c.id) === String(id)) || DEMO_CARS[0]
+  
+  // Set default pickup and return locations based on car's agency
+  React.useEffect(() => {
+    if (car) {
+      const agencyLocation = getAgencyAddress(car.agency)
+      setPickup(agencyLocation)
+      setRet(agencyLocation)
+    }
+  }, [car])
   const days = React.useMemo(() => (start && end ? Math.max(0, Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / (1000*60*60*24))) : 0), [start, end])
   const base = React.useMemo(() => days * (car?.rental_rate_per_day || 0), [days, car])
   const extraDay = (extras.gps ? 10 : 0) + (extras.childSeat ? 8 : 0)
@@ -348,8 +364,38 @@ function BookPage() {
   const totalEstimate = base + extrasTotal
 
   async function submit() {
-    if (!start || !end || !phone) return
-    setShowPaymentSection(true)
+    if (!start || !end || !phone || !driverDob || !driverLicenceNo || !driverAddress) {
+      toast('Please complete all required fields, including driver details')
+      return
+    }
+    const idNum = Math.floor(Math.random()*100000)
+    const total = totalEstimate
+    const booking: Booking = { 
+      id: idNum, 
+      user_id: 1, // Default user ID for demo
+      car_id: Number(id), 
+      start_date: new Date(start).toISOString(), 
+      end_date: new Date(end).toISOString(), 
+      pickup_location: pickup, 
+      return_location: ret, 
+      special_requests: special || undefined, 
+      promo_code: promo || undefined, 
+      phone_number: phone, 
+      status: 'pending', 
+      payment_status: 'invoice_sent',
+      total_cost: total,
+      admin_notes: `Driver details: Address=${driverAddress}; DOB=${driverDob}; LicenceNo=${driverLicenceNo}; LicenceState=${driverLicenceState}; Name=${user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : ''}`,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+    try {
+      const mod = import('./lib/auth')
+      mod.then(auth => auth.addBooking(booking))
+    } catch {
+      // noop in demo
+    }
+    toast('Booking received. An invoice will be emailed to you shortly to finalize your reservation.')
+    navigate(`/profile?booking=${idNum}`)
   }
 
   async function handlePaymentSubmit() {
@@ -409,8 +455,44 @@ function BookPage() {
                 <div><label className="block text-sm mb-1" htmlFor="end">End Date</label><input id="end" type="datetime-local" className="w-full rounded-md border px-3 py-2" value={end} onChange={(e)=>setEnd(e.target.value)} /></div>
               </div>
               <div className="grid md:grid-cols-2 gap-4">
-                <div><label className="block text-sm mb-1" htmlFor="pickup">Pickup Location</label><input id="pickup" className="w-full rounded-md border px-3 py-2" value={pickup} onChange={(e)=>setPickup(e.target.value)} placeholder="Dandenong VIC" /></div>
-                <div><label className="block text-sm mb-1" htmlFor="return">Return Location</label><input id="return" className="w-full rounded-md border px-3 py-2" value={ret} onChange={(e)=>setRet(e.target.value)} placeholder="Dandenong VIC" /></div>
+                <div><label className="block text-sm mb-1" htmlFor="pickup">Pickup Location</label><input id="pickup" className="w-full rounded-md border px-3 py-2 bg-gray-50" value={pickup} readOnly disabled title="Pickup location is fixed to the vehicle's agency" /></div>
+                <div><label className="block text-sm mb-1" htmlFor="return">Return Location</label><input id="return" className="w-full rounded-md border px-3 py-2 bg-gray-50" value={ret} readOnly disabled title="Return location is fixed to the vehicle's agency" /></div>
+              </div>
+              {/* Driver Details */}
+              <div className="border rounded-lg p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-slate-900">Driver Details</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm mb-1" htmlFor="dname">Full Name</label>
+                    <input id="dname" className="w-full rounded-md border px-3 py-2 bg-gray-50" value={user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : ''} readOnly title="Comes from your profile" />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1" htmlFor="ddob">Date of Birth</label>
+                    <input id="ddob" type="date" className="w-full rounded-md border px-3 py-2" value={driverDob} onChange={(e)=>setDriverDob(e.target.value)} required />
+                  </div>
+                </div>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm mb-1" htmlFor="daddr">Residential Address</label>
+                    <input id="daddr" className="w-full rounded-md border px-3 py-2" value={driverAddress} onChange={(e)=>setDriverAddress(e.target.value)} placeholder="Unit / Street, Suburb, State, Postcode" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1" htmlFor="dstate">Licence State</label>
+                    <select id="dstate" className="w-full rounded-md border px-3 py-2" value={driverLicenceState} onChange={(e)=>setDriverLicenceState(e.target.value)}>
+                      {['VIC','NSW','QLD','SA','WA','TAS','NT','ACT','Other'].map(s=> <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm mb-1" htmlFor="dlic">Licence Number</label>
+                    <input id="dlic" className="w-full rounded-md border px-3 py-2" value={driverLicenceNo} onChange={(e)=>setDriverLicenceNo(e.target.value)} placeholder="e.g. 054309446" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1" htmlFor="demail">Email</label>
+                    <input id="demail" type="email" className="w-full rounded-md border px-3 py-2 bg-gray-50" value={user?.email || ''} readOnly />
+                  </div>
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="block text-sm">Extras</label>
@@ -429,7 +511,7 @@ function BookPage() {
                 <textarea id="special" className="w-full rounded-md border px-3 py-2" rows={4} value={special} onChange={(e)=>setSpecial(e.target.value)} />
               </div>
               <div className="flex gap-3">
-                <button onClick={submit} className="h-10 px-5 rounded-md bg-sky-600 text-white hover:bg-sky-700">Continue to Payment</button>
+                <button onClick={submit} className="h-10 px-5 rounded-md bg-sky-600 text-white hover:bg-sky-700">Confirm Booking</button>
                 <Link to={`/cars/${id}`}>
                   <button className="h-10 px-5 rounded-md border bg-white hover:border-sky-300">Back to car</button>
                 </Link>
@@ -543,29 +625,77 @@ function AboutPage() { return pageShell('About Smart Car Rentals', (
   </div>
 )) }
 function ContactPage() { return pageShell('Contact us', (
-  <div className="text-sm space-y-1 text-slate-700">
-    <p>Smart Car Rentals Pty Ltd</p>
-    <p>Unit 2/11 Burrows Avenue, Dandenong VIC 3175</p>
-    <p>Phone: 0420 759 910</p>
-    <p>Email: <a href="mailto:smartrentals1@gmail.com" className="underline text-sky-700">smartrentals1@gmail.com</a></p>
+  <div className="text-sm space-y-4 text-slate-700">
+    <div>
+      <h3 className="font-semibold text-slate-900 mb-2">Registered Operator</h3>
+      <p><span className="font-medium">Name:</span> Aaron Rentals (ABN 56 637 445 302)</p>
+      <p><span className="font-medium">Address:</span> 19 Lipton Drive, Thomastown VIC 3074</p>
+      <p><span className="font-medium">Contact:</span> 0452 600 006</p>
+      <p><span className="font-medium">Email:</span> <a href="mailto:aaronrentals786@gmail.com" className="underline text-sky-700">aaronrentals786@gmail.com</a></p>
+    </div>
+    
+    <div>
+      <h3 className="font-semibold text-slate-900 mb-2">Head Office</h3>
+      <p>Smart Car Rentals Pty Ltd</p>
+      <p>Unit 2/11 Burrows Avenue, Dandenong VIC 3175</p>
+      <p>Phone: 0420 759 910</p>
+      <p>Email: <a href="mailto:smartrentals1@gmail.com" className="underline text-sky-700">smartrentals1@gmail.com</a></p>
+    </div>
+    
+    <div>
+      <h3 className="font-semibold text-slate-900 mb-2">Melbourne CBD</h3>
+      <p>123 Collins Street, Melbourne VIC 3000</p>
+      <p>Phone: 0420 759 911</p>
+      <p>Email: <a href="mailto:melbourne@auroramotors.com" className="underline text-sky-700">melbourne@auroramotors.com</a></p>
+    </div>
+    
+    <div>
+      <h3 className="font-semibold text-slate-900 mb-2">Southbank</h3>
+      <p>456 Southbank Boulevard, Southbank VIC 3006</p>
+      <p>Phone: 0420 759 912</p>
+      <p>Email: <a href="mailto:southbank@auroramotors.com" className="underline text-sky-700">southbank@auroramotors.com</a></p>
+    </div>
   </div>
 )) }
 function TermsPage() { return pageShell('Terms and Conditions', (
   <div className="text-sm leading-6 text-slate-700 space-y-4">
-    <p><span className="font-semibold">Company:</span> Smart Car Rentals Pty Ltd</p>
-    <p><span className="font-semibold">Tagline:</span> Smart Car Rentals</p>
-    <div className="space-y-2">
-      <h3 className="font-semibold text-slate-900">Rental Agreement Summary</h3>
-      <ul className="list-disc pl-5 space-y-1">
-        <li>Valid driver's license and payment method required.</li>
-        <li>Renter is responsible for tolls, fines, and fuel unless otherwise stated.</li>
-        <li>Mileage and usage must comply with vehicle category guidelines.</li>
-        <li>Vehicle condition photos should be taken at pickup and return.</li>
-        <li>Insurance excess, bond, and fees (if applicable) are disclosed at booking.</li>
-        <li>Late returns may incur additional daily charges.</li>
-      </ul>
-    </div>
-    <p>For full terms and conditions or tailored agreements for rideshare and long-term rentals, please contact us at <a href="mailto:smartrentals1@gmail.com" className="underline">smartrentals1@gmail.com</a> or 0420 759 910.</p>
+    <h3 className="font-semibold text-slate-900">1. Registered Operator Details</h3>
+    <p><span className="font-medium">Name:</span> Aaron Rentals (ABN 56 637 445 302)</p>
+    <p><span className="font-medium">Address:</span> 19 Lipton Drive, Thomastown VIC 3074</p>
+    <p><span className="font-medium">Contact:</span> 0452 600 006</p>
+    <p><span className="font-medium">Email:</span> <a href="mailto:aaronrentals786@gmail.com" className="underline">aaronrentals786@gmail.com</a></p>
+
+    <h3 className="font-semibold text-slate-900">2. Rentee & Vehicle Details</h3>
+    <p>These are captured in the booking process (Driver Details) and the vehicle selected. Example fields include: name, residential address, DOB, licence number/state, and the vehicle make/model/year/VIN/colour and registration.</p>
+
+    <h3 className="font-semibold text-slate-900">3. Fees and Charges</h3>
+    <ul className="list-disc pl-5 space-y-1">
+      <li>Base fee: $1.00 per day (incl. GST)</li>
+      <li>Fuel: Rentee pays for fuel used. Vehicle must be returned full; a $20 filling charge + fuel per litre applies otherwise.</li>
+      <li>Standard Excess: $5,000</li>
+      <li>Age Excess (under 25): +$500</li>
+      <li>Unlisted Drivers Excess: $5,000</li>
+      <li>Admin Fees: $165.00</li>
+      <li>Rego Recovery daily: $8.80</li>
+      <li>Roadside Assistance daily: $11.00</li>
+      <li>Cleaning Fees: $110.00</li>
+      <li>Excess Reduction daily: $44.00</li>
+      <li>All prices include GST. Insurance coverage applies within Victoria only.</li>
+    </ul>
+
+    <h3 className="font-semibold text-slate-900">4. Rental Period</h3>
+    <p>Start and end dates are defined on booking. Vehicle must be returned to the pickup location on or before the agreed date/time.</p>
+
+    <h3 className="font-semibold text-slate-900">5. Definitions, Use, Maintenance, Travel Limits, Damage/Loss, Fines & Penalties</h3>
+    <p>This agreement incorporates standard provisions covering definitions and interpretation; ownership; lawful use; maintenance responsibilities; weekly distance limits (3,000 km, $0.70/km excess); accident/theft reporting and liability; and fines/tolls being for the Rentee’s account with admin fees where applicable. Vehicles must remain within the state of registration and be driven on sealed roads only.</p>
+
+    <h3 className="font-semibold text-slate-900">6. Return of Vehicle</h3>
+    <p>Return all keys, accessories and books. Charges may apply for missing items or damage. Late return may incur the monthly rental plus a 20% penalty.</p>
+
+    <h3 className="font-semibold text-slate-900">7. Jurisdiction & General</h3>
+    <p>Non‑exclusive jurisdiction in Victoria. This document constitutes the whole agreement; amendments must be in writing and signed. The Rentee acknowledges understanding and acceptance of the terms.</p>
+
+    <div className="pt-2 text-xs text-slate-500">For the complete, legally worded agreement, contact the registered operator at <a href="mailto:aaronrentals786@gmail.com" className="underline">aaronrentals786@gmail.com</a>.</div>
   </div>
 )) }
 

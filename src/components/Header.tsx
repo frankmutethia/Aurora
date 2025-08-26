@@ -10,9 +10,7 @@ const Header = () => {
     <header className="sticky top-0 z-40 w-full border-b border-sky-100 bg-white/70 backdrop-blur-md">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <a href="/" className="flex items-center gap-2" aria-label="Smart Car Rentals home">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-sky-100">
-            <span className="h-5 w-5 rounded-full bg-sky-600" />
-          </span>
+          <img src="/images/logo.jpg" alt="Smart Rentals Logo" className="h-9 w-9 rounded object-cover" />
           <div className="flex flex-col leading-tight">
             <span className="font-semibold tracking-tight">Smart Car Rentals</span>
             <span className="text-[11px] text-sky-700/80">Smart Car Rentals</span>

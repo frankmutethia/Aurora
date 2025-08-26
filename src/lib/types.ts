@@ -19,6 +19,17 @@ export type CarStatus = 'available' | 'booked' | 'in_use' | 'under_maintenance' 
 export type CarCategory = 'SUV' | 'Sedan' | 'Hatchback' | 'Van' | 'Luxury' | 'Electric'
 export type Agency = 'Agency A' | 'Agency B' | 'Agency C'
 
+export type AgencyLocation = {
+  id: Agency
+  name: string
+  address: string
+  city: string
+  state: string
+  postcode: string
+  phone?: string
+  email?: string
+}
+
 export type FuelType = 'Petrol' | 'Diesel' | 'Hybrid' | 'Electric'
 
 export type Transmission = 'Automatic' | 'Manual' | 'CVT'

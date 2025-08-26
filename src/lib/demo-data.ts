@@ -1,4 +1,38 @@
-import type { Car, Booking, Profile, UsageLog, ServiceRecord } from './types'
+import type { Car, Booking, Profile, UsageLog, ServiceRecord, AgencyLocation } from './types'
+
+// Agency Location Data
+export const AGENCY_LOCATIONS: AgencyLocation[] = [
+  {
+    id: 'Agency A',
+    name: 'Aurora Motors - Dandenong',
+    address: 'Unit 2/11 Burrows Avenue',
+    city: 'Dandenong',
+    state: 'VIC',
+    postcode: '3175',
+    phone: '0420 759 910',
+    email: 'smartrentals1@gmail.com'
+  },
+  {
+    id: 'Agency B',
+    name: 'Aurora Motors - Melbourne CBD',
+    address: '123 Collins Street',
+    city: 'Melbourne',
+    state: 'VIC',
+    postcode: '3000',
+    phone: '0420 759 911',
+    email: 'melbourne@auroramotors.com'
+  },
+  {
+    id: 'Agency C',
+    name: 'Aurora Motors - Southbank',
+    address: '456 Southbank Boulevard',
+    city: 'Southbank',
+    state: 'VIC',
+    postcode: '3006',
+    phone: '0420 759 912',
+    email: 'southbank@auroramotors.com'
+  }
+]
 
 // Enhanced Demo Cars with Realistic Data
 export const DEMO_CARS: Car[] = [
@@ -187,8 +221,8 @@ export const DEMO_BOOKINGS: Booking[] = [
     car_id: 103,
     start_date: '2024-08-19T08:00:00Z',
     end_date: '2024-08-21T18:00:00Z',
-    pickup_location: 'Dandenong VIC',
-    return_location: 'Dandenong VIC',
+    pickup_location: 'Melbourne VIC',
+    return_location: 'Melbourne VIC',
     phone_number: '+61420111222',
     status: 'in_progress',
     payment_status: 'paid',
@@ -308,4 +342,16 @@ export function getActiveBookings(): Booking[] {
   return DEMO_BOOKINGS.filter(booking => 
     booking.status === 'confirmed' || booking.status === 'in_progress'
   )
+}
+
+// Helper function to get agency location by ID
+export function getAgencyLocation(agencyId: Agency): AgencyLocation | undefined {
+  return AGENCY_LOCATIONS.find(agency => agency.id === agencyId)
+}
+
+// Helper function to get formatted agency address
+export function getAgencyAddress(agencyId: Agency): string {
+  const agency = getAgencyLocation(agencyId)
+  if (!agency) return 'Location not specified'
+  return `${agency.address}, ${agency.city} ${agency.state} ${agency.postcode}`
 }

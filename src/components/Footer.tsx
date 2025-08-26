@@ -3,7 +3,10 @@ const Footer = () => {
     <footer className="border-t border-sky-100 bg-white">
       <div className="container mx-auto px-4 py-8 grid gap-6 md:grid-cols-3">
         <div className="space-y-2">
-          <h4 className="font-semibold">Smart Car Rentals Pty Ltd</h4>
+          <div className="flex items-center gap-2">
+            <img src="/images/logo.jpg" alt="Smart Rentals Logo" className="h-8 w-8 rounded object-cover" />
+            <h4 className="font-semibold">Smart Car Rentals Pty Ltd</h4>
+          </div>
           <p className="text-sm text-muted-foreground">Unit 2/11 Burrows Avenue, Dandenong VIC 3175</p>
           <p className="text-sm text-muted-foreground">Phone: 0420 759 910</p>
           <p className="text-sm">Email: <a href="mailto:smartrentals1@gmail.com" className="underline hover:text-sky-700">smartrentals1@gmail.com</a></p>

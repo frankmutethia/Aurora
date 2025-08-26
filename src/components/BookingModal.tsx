@@ -148,13 +148,10 @@ const BookingModal: React.FC<BookingModalProps> = ({
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-gray-700 mb-1">Pickup Odometer (km)</label>
-                    <input type="number" className="w-full border rounded px-3 py-2" value={pickupOdo} onChange={(e)=>{ const v=Number(e.target.value)||0; setPickupOdo(v); persistPartial({ pickup_odometer: v }) }} />
+                    <input type="number" title="Pickup odometer (kilometres)" placeholder="e.g. 28750" className="w-full border rounded px-3 py-2" value={pickupOdo} onChange={(e)=>{ const v=Number(e.target.value)||0; setPickupOdo(v); persistPartial({ pickup_odometer: v }) }} />
                   </div>
-                  <div>
-                    <label className="block text-gray-700 mb-1">Return Odometer (km)</label>
-                    <input type="number" className="w-full border rounded px-3 py-2" value={returnOdo} onChange={(e)=>{ const v=Number(e.target.value)||0; setReturnOdo(v); persistPartial({ return_odometer: v }) }} />
-                  </div>
-                </div>
+                  
+                 </div>
                 <div>
                   <label className="block text-gray-700 mb-1">Pickup Photos (comma-separated URLs)</label>
                   <input className="w-full border rounded px-3 py-2" placeholder="https://... , https://..." value={pickupPhotos.join(', ')} onChange={(e)=>{ const arr=e.target.value.split(',').map(s=>s.trim()).filter(Boolean); setPickupPhotos(arr); persistPartial({ pickup_photos: arr }) }} />
@@ -162,11 +159,11 @@ const BookingModal: React.FC<BookingModalProps> = ({
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-gray-700 mb-1">Bond Amount</label>
-                    <input type="number" className="w-full border rounded px-3 py-2" value={bondAmount} onChange={(e)=>{ const v=Number(e.target.value)||0; setBondAmount(v); persistPartial({ bond_amount: v }) }} />
+                    <input type="number" title="Bond amount" placeholder="e.g. 500" className="w-full border rounded px-3 py-2" value={bondAmount} onChange={(e)=>{ const v=Number(e.target.value)||0; setBondAmount(v); persistPartial({ bond_amount: v }) }} />
                   </div>
                   <div>
                     <label className="block text-gray-700 mb-1">Week 1 Amount</label>
-                    <input type="number" className="w-full border rounded px-3 py-2" value={week1Amount} onChange={(e)=>{ const v=Number(e.target.value)||0; setWeek1Amount(v); persistPartial({ week1_amount: v }) }} />
+                    <input type="number" title="Week 1 amount" placeholder="e.g. 300" className="w-full border rounded px-3 py-2" value={week1Amount} onChange={(e)=>{ const v=Number(e.target.value)||0; setWeek1Amount(v); persistPartial({ week1_amount: v }) }} />
                   </div>
                 </div>
                 <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" onClick={()=>persistPartial({ collection_completed_at: new Date().toISOString() })}>Mark Collection Complete</button>
@@ -176,6 +173,10 @@ const BookingModal: React.FC<BookingModalProps> = ({
                 <div>
                   <label className="block text-gray-700 mb-1">Return Photos (comma-separated URLs)</label>
                   <input className="w-full border rounded px-3 py-2" placeholder="https://... , https://..." value={returnPhotos.join(', ')} onChange={(e)=>{ const arr=e.target.value.split(',').map(s=>s.trim()).filter(Boolean); setReturnPhotos(arr); persistPartial({ return_photos: arr }) }} />
+                </div>
+                <div>
+                  <label className="block text-gray-700 mb-1">Return Odometer (km)</label>
+                  <input type="number" title="Return odometer (kilometres)" placeholder="e.g. 29810" className="w-full border rounded px-3 py-2" value={returnOdo} onChange={(e)=>{ const v=Number(e.target.value)||0; setReturnOdo(v); persistPartial({ return_odometer: v }) }} />
                 </div>
                 <button className="px-4 py-2 bg-slate-600 text-white rounded hover:bg-slate-700" onClick={()=>persistPartial({ return_completed_at: new Date().toISOString() })}>Mark Return Complete</button>
               </div>
@@ -217,19 +218,45 @@ const BookingModal: React.FC<BookingModalProps> = ({
                   </div>
                 </div>
               </div>
-              <div>
-                <h4 className="font-medium text-gray-900 mb-3">Contact Actions</h4>
-                <div className="space-y-2">
-                  <button className="w-full px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors text-sm">
-                    Send Email
-                  </button>
-                  <button className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm">
-                    Send SMS
-                  </button>
-                  <button className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm">
-                    View History
-                  </button>
-                </div>
+              
+            </div>
+          </div>
+
+          {/* Driver Details (Mock) */}
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Driver Details</h3>
+            <div className="divide-y">
+              <div className="flex items-start justify-between py-3">
+                <span className="text-gray-600">Full Name</span>
+                <span className="font-medium text-gray-900">{user ? `${user.first_name?.toUpperCase()} ${user.last_name?.toUpperCase()}` : 'N/A'}</span>
+              </div>
+              <div className="flex items-start justify-between py-3">
+                <span className="text-gray-600">Address</span>
+                <span className="font-medium text-gray-900 text-right">U 5 6 SYLVANWOOD CRES<br/>NARRE WARREN VIC 3805</span>
+              </div>
+              <div className="flex items-start justify-between py-3">
+                <span className="text-gray-600">DOB</span>
+                <span className="font-medium text-gray-900">06 MAY 1997</span>
+              </div>
+              <div className="flex items-start justify-between py-3">
+                <span className="text-gray-600">Licence NO.</span>
+                <span className="font-medium text-gray-900">054309446</span>
+              </div>
+              <div className="flex items-start justify-between py-3">
+                <span className="text-gray-600">Licence State/Country of issue</span>
+                <span className="font-medium text-gray-900">VIC</span>
+              </div>
+              <div className="flex items-start justify-between py-3">
+                <span className="text-gray-600">Email address /CONTACT NO.</span>
+                <span className="font-medium text-gray-900">{user?.email || '—'}{user?.phone ? ` / ${user.phone}` : ''}</span>
+              </div>
+              <div className="flex items-start justify-between py-3">
+                <span className="text-gray-600">STARTDATE</span>
+                <span className="font-medium text-gray-900">{new Date(booking.start_date).toLocaleDateString('en-AU')}</span>
+              </div>
+              <div className="flex items-start justify-between py-3">
+                <span className="text-gray-600">END DATES</span>
+                <span className="font-medium text-gray-900">{booking.status === 'in_progress' || booking.status === 'confirmed' ? new Date(booking.end_date).toLocaleDateString('en-AU') : 'ONGOING'}</span>
               </div>
             </div>
           </div>
