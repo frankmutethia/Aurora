@@ -31,7 +31,7 @@ const CarManagement = () => {
     model: '',
     year: new Date().getFullYear(),
     license_plate: '',
-    agency: 'Agency A',
+    agency: 'Aurora motors',
     category: 'Sedan',
     transmission: 'Automatic',
     fuel_type: 'Petrol',
@@ -53,7 +53,7 @@ const CarManagement = () => {
       model: '',
       year: new Date().getFullYear(),
       license_plate: '',
-      agency: 'Agency A',
+      agency: 'Aurora motors',
       category: 'Sedan',
       transmission: 'Automatic',
       fuel_type: 'Petrol',
@@ -534,6 +534,8 @@ const CarManagement = () => {
                     resetForm()
                   }}
                   className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  aria-label="Close"
+                  title="Close"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -612,9 +614,9 @@ const CarManagement = () => {
                     required
                     aria-label="Car agency"
                   >
-                    <option value="Agency A">Agency A</option>
-                    <option value="Agency B">Agency B</option>
-                    <option value="Agency C">Agency C</option>
+                    <option value="Aurora motors">Aurora motors</option>
+                    <option value="Smart">Smart</option>
+                    <option value="JNK">JNK</option>
                   </select>
                 </div>
 

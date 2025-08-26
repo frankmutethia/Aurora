@@ -21,6 +21,8 @@ const AdminSidebar = ({ isOpen, activeSection, onSectionChange }: {
     { id: 'bookings', label: 'Bookings', icon: '📅' },
     { id: 'fleet', label: 'Fleet Management', icon: '🚗' },
     { id: 'users', label: 'Users', icon: '👥' },
+    { id: 'drivers', label: 'Driver Profiles', icon: '🪪' },
+    { id: 'payments', label: 'Payments', icon: '💳' },
     { id: 'maintenance', label: 'Maintenance', icon: '🔧' },
     { id: 'reports', label: 'Reports', icon: '📈' },
   ]
@@ -124,6 +126,7 @@ const AdminDashboard = () => {
   const [activeSection, setActiveSection] = React.useState('dashboard')
   const [selectedBooking, setSelectedBooking] = React.useState<Booking | null>(null)
   const [showBookingModal, setShowBookingModal] = React.useState(false)
+  const [selectedDriverId, setSelectedDriverId] = React.useState<number | null>(null)
   // Bookings filters
   const [bookingSearch, setBookingSearch] = React.useState('')
   const [bookingStatus, setBookingStatus] = React.useState('')
@@ -133,6 +136,13 @@ const AdminDashboard = () => {
   React.useEffect(() => {
     const currentUser = getCurrentUser()
     setUser(currentUser)
+  }, [])
+
+  // Collapse sidebar on small screens for responsiveness
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (window.innerWidth < 1024) setSidebarOpen(false)
+    }
   }, [])
 
   // Compute filtered bookings; when filters are empty ("All"), show everything including completed/returned
@@ -205,6 +215,11 @@ const AdminDashboard = () => {
   const handleCancelBooking = (booking: Booking) => {
     handleStatusUpdate(booking.id, 'cancelled')
     toast(`Booking #${booking.id} has been cancelled`)
+  }
+
+  const openDriverProfile = (userId: number) => {
+    setSelectedDriverId(userId)
+    setActiveSection('driver_profile')
   }
 
   if (!user) {
@@ -2254,6 +2269,186 @@ const AdminDashboard = () => {
             </div>
           </div>
         )
+
+      case 'drivers':
+        return (
+          <div className="space-y-6">
+            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">Driver Profiles</h3>
+                  <p className="text-sm text-gray-600 mt-1">View and manage driver details</p>
+                </div>
+              </div>
+            </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {DEMO_USERS.map((u) => {
+                const userBookings = DEMO_BOOKINGS.filter(b => b.user_id === u.id)
+                return (
+                  <div key={u.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-sky-100 rounded-full flex items-center justify-center">
+                        <span className="text-sky-700 font-semibold text-sm">{u.first_name?.[0]}{u.last_name?.[0]}</span>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900">{u.first_name} {u.last_name}</div>
+                        <div className="text-xs text-gray-500">ID: {u.id}</div>
+                      </div>
+                    </div>
+                    <div className="text-sm space-y-1">
+                      <div className="flex justify-between"><span className="text-gray-600">Email</span><span className="font-medium">{u.email}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-600">Phone</span><span className="font-medium">{u.phone || '—'}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-600">Role</span><span className="font-medium capitalize">{u.role}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-600">Bookings</span><span className="font-medium">{userBookings.length}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-600">Loyalty</span><span className="font-medium">{u.loyalty_points ?? 0} pts</span></div>
+                    </div>
+                    <div className="mt-4 flex items-center gap-2">
+                      <button className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50" onClick={() => openDriverProfile(u.id)}>View Profile</button>
+                      <a href={`/contact`} className="px-3 py-1.5 text-sm bg-sky-600 text-white rounded hover:bg-sky-700">Contact</a>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+
+      case 'payments':
+        return (
+          <div className="space-y-6">
+            <div className="bg-white border rounded-lg p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">Payments</h3>
+                  <p className="text-sm text-gray-600 mt-1">All bookings and their payment statuses</p>
+                </div>
+                <div className="text-sm text-gray-600">Total Due: ${DEMO_BOOKINGS.filter(b=>b.payment_status==='pending').reduce((s,b)=>s+b.total_cost,0).toLocaleString()}</div>
+              </div>
+            </div>
+
+            <div className="bg-white border rounded-lg overflow-hidden">
+              <div className="px-6 py-4 border-b bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900">Payments Overview</h3>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Booking</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Customer</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Vehicle</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Total</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Payment Status</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {DEMO_BOOKINGS.map((b)=>{
+                      const user = DEMO_USERS.find(u=>u.id===b.user_id)
+                      const car = DEMO_CARS.find(c=>c.id===b.car_id)
+                      return (
+                        <tr key={b.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-3">#{b.id}</td>
+                          <td className="px-6 py-3">{user ? `${user.first_name} ${user.last_name}` : 'Unknown'}</td>
+                          <td className="px-6 py-3">{car ? `${car.make} ${car.model}` : b.car_id}</td>
+                          <td className="px-6 py-3">${b.total_cost.toLocaleString()}</td>
+                          <td className="px-6 py-3"><StatusBadge status={b.payment_status}>{b.payment_status.replace('_',' ')}</StatusBadge></td>
+                          <td className="px-6 py-3 flex items-center gap-2">
+                            <button className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50" onClick={()=>handleSendInvoice(b)}>Send Invoice</button>
+                            <button className="px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700" onClick={()=>handlePaymentUpdate(b.id, 'paid')}>Mark Paid</button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'driver_profile': {
+        const user = DEMO_USERS.find(u => u.id === selectedDriverId)
+        const bookings = DEMO_BOOKINGS.filter(b => b.user_id === selectedDriverId)
+        const totalSpent = bookings.reduce((s, b) => s + b.total_cost, 0)
+        return (
+          <div className="space-y-6">
+            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">Driver Profile</h3>
+                  <p className="text-sm text-gray-600 mt-1">Comprehensive driver information, vehicles and payments</p>
+                </div>
+                <button className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50" onClick={() => setActiveSection('drivers')}>← Back to Drivers</button>
+              </div>
+            </div>
+
+            {/* Driver summary */}
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm md:col-span-1">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-sky-100 rounded-full flex items-center justify-center">
+                    <span className="text-sky-700 font-semibold">{user?.first_name?.[0]}{user?.last_name?.[0]}</span>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-900">{user?.first_name} {user?.last_name}</div>
+                    <div className="text-xs text-gray-500">ID: {user?.id}</div>
+                  </div>
+                </div>
+                <div className="text-sm space-y-2">
+                  <div className="flex justify-between"><span className="text-gray-600">Email</span><span className="font-medium break-all">{user?.email}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">Phone</span><span className="font-medium">{user?.phone || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">Role</span><span className="font-medium capitalize">{user?.role}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">Loyalty</span><span className="font-medium">{user?.loyalty_points ?? 0} pts</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">Total Spent</span><span className="font-medium">${totalSpent.toLocaleString()}</span></div>
+                </div>
+              </div>
+
+              {/* Vehicles and payments */}
+              <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm md:col-span-2">
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">Bookings & Payments</h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left">Booking</th>
+                        <th className="px-4 py-3 text-left">Vehicle</th>
+                        <th className="px-4 py-3 text-left">Period</th>
+                        <th className="px-4 py-3 text-left">Payment</th>
+                        <th className="px-4 py-3 text-left">Status</th>
+                        <th className="px-4 py-3 text-left">Total</th>
+                        <th className="px-4 py-3 text-left">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {bookings.map(b => {
+                        const car = DEMO_CARS.find(c => c.id === b.car_id)
+                        return (
+                          <tr key={b.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-3">#{b.id}</td>
+                            <td className="px-4 py-3">{car ? `${car.year} ${car.make} ${car.model}` : b.car_id}</td>
+                            <td className="px-4 py-3">{new Date(b.start_date).toLocaleDateString()} → {new Date(b.end_date).toLocaleDateString()}</td>
+                            <td className="px-4 py-3"><StatusBadge status={b.payment_status}>{b.payment_status.replace('_',' ')}</StatusBadge></td>
+                            <td className="px-4 py-3"><StatusBadge status={b.status}>{b.status.replace('_',' ')}</StatusBadge></td>
+                            <td className="px-4 py-3">${b.total_cost.toLocaleString()}</td>
+                            <td className="px-4 py-3 flex items-center gap-2">
+                              <button className="px-3 py-1.5 text-xs border border-gray-300 rounded hover:bg-gray-50" onClick={()=>handleSendInvoice(b)}>Send Invoice</button>
+                              <button className="px-3 py-1.5 text-xs bg-green-600 text-white rounded hover:bg-green-700" onClick={()=>handlePaymentUpdate(b.id,'paid')}>Mark Paid</button>
+                              <button className="px-3 py-1.5 text-xs text-sky-600 border border-sky-200 rounded hover:bg-sky-50" onClick={()=>handleViewBooking(b)}>View</button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      }
 
       default:
         return <div>Section not found</div>

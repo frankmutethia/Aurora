@@ -17,7 +17,8 @@ export type Profile = {
 export type CarStatus = 'available' | 'booked' | 'in_use' | 'under_maintenance' | 'due_for_service'
 
 export type CarCategory = 'SUV' | 'Sedan' | 'Hatchback' | 'Van' | 'Luxury' | 'Electric'
-export type Agency = 'Agency A' | 'Agency B' | 'Agency C'
+export type Agency = 'Aurora motors' | 'Smart' | 'JNK'
+export const AGENCIES: Agency[] = ['Aurora motors', 'Smart', 'JNK']
 
 export type AgencyLocation = {
   id: Agency
