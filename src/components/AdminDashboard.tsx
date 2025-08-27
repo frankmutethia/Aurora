@@ -132,6 +132,11 @@ const AdminDashboard = () => {
   const [bookingStatus, setBookingStatus] = React.useState('')
   const [bookingPayment, setBookingPayment] = React.useState('')
   const [bookingDateRange, setBookingDateRange] = React.useState('')
+  const [bookingDateFrom, setBookingDateFrom] = React.useState('')
+  const [bookingDateTo, setBookingDateTo] = React.useState('')
+  // Users filters
+  const [usersDateFrom, setUsersDateFrom] = React.useState('')
+  const [usersDateTo, setUsersDateTo] = React.useState('')
 
   React.useEffect(() => {
     const currentUser = getCurrentUser()
@@ -152,22 +157,15 @@ const AdminDashboard = () => {
     if (bookingStatus) list = list.filter(b => b.status === bookingStatus)
     // Payment
     if (bookingPayment) list = list.filter(b => b.payment_status === bookingPayment)
-    // Date range (based on start_date)
-    if (bookingDateRange) {
-      const now = new Date()
-      let from: Date | null = null
-      if (bookingDateRange === 'today') {
-        from = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      } else if (bookingDateRange === 'week') {
-        from = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-      } else if (bookingDateRange === 'month') {
-        from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-      } else if (bookingDateRange === 'quarter') {
-        from = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
-      }
-      if (from) {
-        list = list.filter(b => new Date(b.start_date) >= from)
-      }
+    // Date range (based on start_date) using explicit from/to
+    if (bookingDateFrom) {
+      const from = new Date(bookingDateFrom)
+      list = list.filter(b => new Date(b.start_date) >= from)
+    }
+    if (bookingDateTo) {
+      const to = new Date(bookingDateTo)
+      to.setHours(23, 59, 59, 999)
+      list = list.filter(b => new Date(b.start_date) <= to)
     }
     // Search text across booking id, user name/email, car title
     const q = bookingSearch.trim().toLowerCase()
@@ -188,7 +186,22 @@ const AdminDashboard = () => {
       })
     }
     return list
-  }, [bookingSearch, bookingStatus, bookingPayment, bookingDateRange])
+  }, [bookingSearch, bookingStatus, bookingPayment, bookingDateFrom, bookingDateTo])
+
+  // Filtered users (by joined date)
+  const filteredUsers = React.useMemo(() => {
+    let list = [...DEMO_USERS]
+    if (usersDateFrom) {
+      const from = new Date(usersDateFrom)
+      list = list.filter(u => new Date(u.created_at) >= from)
+    }
+    if (usersDateTo) {
+      const to = new Date(usersDateTo)
+      to.setHours(23, 59, 59, 999)
+      list = list.filter(u => new Date(u.created_at) <= to)
+    }
+    return list
+  }, [usersDateFrom, usersDateTo])
 
   const handleViewBooking = (booking: Booking) => {
     setSelectedBooking(booking)
@@ -900,20 +913,32 @@ const AdminDashboard = () => {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="date-filter" className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
-                  <select 
-                    id="date-filter"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                    aria-label="Filter by date range"
-                    value={bookingDateRange}
-                    onChange={(e)=>setBookingDateRange(e.target.value)}
-                  >
-                    <option value="">All Dates</option>
-                    <option value="today">Today</option>
-                    <option value="week">This Week</option>
-                    <option value="month">This Month</option>
-                    <option value="quarter">This Quarter</option>
-                  </select>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="date"
+                      aria-label="Filter from date"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                      value={bookingDateFrom}
+                      onChange={(e)=>setBookingDateFrom(e.target.value)}
+                    />
+                    <input
+                      type="date"
+                      aria-label="Filter to date"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                      value={bookingDateTo}
+                      onChange={(e)=>setBookingDateTo(e.target.value)}
+                    />
+                  </div>
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={()=>{ setBookingDateFrom(''); setBookingDateTo('') }}
+                      className="px-3 py-1.5 text-sm border rounded-md hover:border-sky-300"
+                    >
+                      Clear
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1205,18 +1230,32 @@ const AdminDashboard = () => {
                    </select>
                  </div>
                  <div>
-                   <label htmlFor="date-filter" className="block text-sm font-medium text-gray-700 mb-2">Joined Date</label>
-                   <select 
-                     id="date-filter"
-                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                     aria-label="Filter by join date"
-                   >
-                     <option value="">All Time</option>
-                     <option value="week">This Week</option>
-                     <option value="month">This Month</option>
-                     <option value="quarter">This Quarter</option>
-                     <option value="year">This Year</option>
-                   </select>
+                   <label className="block text-sm font-medium text-gray-700 mb-2">Joined Date</label>
+                   <div className="grid grid-cols-2 gap-2">
+                     <input
+                       type="date"
+                       aria-label="Filter users from date"
+                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                       value={usersDateFrom}
+                       onChange={(e)=>setUsersDateFrom(e.target.value)}
+                     />
+                     <input
+                       type="date"
+                       aria-label="Filter users to date"
+                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                       value={usersDateTo}
+                       onChange={(e)=>setUsersDateTo(e.target.value)}
+                     />
+                   </div>
+                   <div className="mt-2 flex items-center gap-2">
+                     <button
+                       type="button"
+                       onClick={()=>{ setUsersDateFrom(''); setUsersDateTo('') }}
+                       className="px-3 py-1.5 text-sm border rounded-md hover:border-sky-300"
+                     >
+                       Clear
+                     </button>
+                   </div>
                  </div>
                </div>
              </div>
@@ -1227,7 +1266,7 @@ const AdminDashboard = () => {
                  <div className="flex items-center justify-between">
                    <h3 className="text-lg font-semibold text-gray-900">All Users</h3>
                    <div className="text-sm text-gray-600">
-                     Showing {DEMO_USERS.length} of {DEMO_USERS.length} users
+                     Showing {filteredUsers.length} of {DEMO_USERS.length} users
                    </div>
                  </div>
                </div>
@@ -1258,145 +1297,64 @@ const AdminDashboard = () => {
                        <th className="px-6 py-4 text-left">
                          <span className="text-sm font-semibold text-gray-700">Activity</span>
                        </th>
-                       <th className="px-6 py-4 text-left">
+                       <th className="px-6 py-4 text-right">
                          <span className="text-sm font-semibold text-gray-700">Actions</span>
                        </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                     {DEMO_USERS.map((user) => {
+                     </tr>
+                   </thead>
+                   <tbody className="divide-y divide-gray-200">
+                     {filteredUsers.map((user) => {
                        const userBookings = DEMO_BOOKINGS.filter(b => b.user_id === user.id)
                        const totalSpent = userBookings.reduce((sum, b) => sum + b.total_cost, 0)
-                       const loyaltyTier = (user.loyalty_points ?? 0) >= 501 ? 'Gold' : (user.loyalty_points ?? 0) >= 101 ? 'Silver' : 'Bronze'
-                       const loyaltyColor = loyaltyTier === 'Gold' ? 'text-yellow-600' : loyaltyTier === 'Silver' ? 'text-gray-600' : 'text-orange-600'
-                       
                        return (
-                         <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4">
+                         <tr key={user.id}>
+                           <td className="px-6 py-4">
                              <div className="flex items-center gap-3">
-                               <input 
-                                 type="checkbox" 
-                                 className="rounded border-gray-300" 
-                                 aria-label={`Select user ${user.id}`}
-                               />
-                               <div className="flex items-center gap-3">
-                                 <div className="w-10 h-10 bg-sky-100 rounded-full flex items-center justify-center">
-                                   <span className="text-sky-700 font-semibold text-sm">
-                                     {user.first_name?.[0]}{user.last_name?.[0]}
-                                   </span>
-                                 </div>
-                                 <div>
-                                   <div className="font-semibold text-gray-900">{user.first_name} {user.last_name}</div>
-                                   <div className="text-xs text-gray-500">ID: {user.id}</div>
-                                 </div>
+                               <div className="h-9 w-9 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center text-xs font-semibold">
+                                 {user.first_name?.[0] ?? 'U'}{user.last_name?.[0] ?? ''}
                                </div>
-                             </div>
-                           </td>
-                           <td className="px-6 py-4">
-                             <div>
-                               <div className="font-medium text-gray-900">{user.email}</div>
-                               <div className="text-sm text-gray-600">{user.phone || 'No phone'}</div>
-                               <div className="text-xs text-gray-500">
-                                 Joined {new Date(user.created_at).toLocaleDateString()}
-                               </div>
-                             </div>
-                           </td>
-                           <td className="px-6 py-4">
-                             <div className="space-y-2">
                                <div>
-                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                   user.role === 'admin' ? 'bg-red-100 text-red-800' : 
-                                   user.role === 'owner' ? 'bg-purple-100 text-purple-800' : 
-                                   'bg-blue-100 text-blue-800'
-                                 }`}>
-                          {user.role}
-                        </span>
-                               </div>
-                               <div className="text-xs text-gray-500">
-                                 {userBookings.length} bookings • ${totalSpent.toLocaleString()} spent
-                               </div>
-                             </div>
-                      </td>
-                           <td className="px-6 py-4">
-                             <div className="space-y-2">
-                               <div className="flex items-center gap-2">
-                                 <span className={`text-sm font-medium ${loyaltyColor}`}>{loyaltyTier}</span>
-                                 <span className="text-xs text-gray-500">({user.loyalty_points ?? 0} pts)</span>
-                               </div>
-                               <div className="w-full bg-gray-200 rounded-full h-1.5">
-                                 <div 
-                                   className={`h-1.5 rounded-full ${
-                                     loyaltyTier === 'Gold' ? 'bg-yellow-500' : 
-                                     loyaltyTier === 'Silver' ? 'bg-gray-500' : 
-                                     'bg-orange-500'
-                                   }`}
-                                   style={{ 
-                                     width: `${Math.min(((user.loyalty_points ?? 0) / 500) * 100, 100)}%` 
-                                   }}
-                                 ></div>
+                                 <div className="text-sm font-medium text-gray-900">{user.first_name} {user.last_name}</div>
+                                 <div className="text-xs text-gray-600">ID: {user.id}</div>
                                </div>
                              </div>
                            </td>
                            <td className="px-6 py-4">
-                             <div className="space-y-1">
-                               <div className="text-sm text-gray-900">
-                                 Last active: {userBookings.length > 0 ? 
-                                   new Date(userBookings[userBookings.length - 1].created_at).toLocaleDateString() : 
-                                   'Never'
-                                 }
-                               </div>
-                               <div className="text-xs text-gray-500">
-                                 {userBookings.length > 0 ? 
-                                   `${userBookings.filter(b => b.status === 'completed').length} completed rentals` : 
-                                   'No rentals yet'
-                                 }
-                               </div>
-                             </div>
+                             <div className="text-sm text-gray-900">{user.email}</div>
+                             <div className="text-xs text-gray-600">{user.phone}</div>
                            </td>
                            <td className="px-6 py-4">
                              <div className="flex items-center gap-2">
-                               <button className="p-2 text-sky-600 hover:bg-sky-50 rounded-lg transition-colors" title="View Profile">
-                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                 </svg>
-                               </button>
-                               <button className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Edit User">
-                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                 </svg>
-                               </button>
-                               <button className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors" title="View Bookings">
-                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                 </svg>
-                               </button>
-                               <button className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors" title="Send Message">
-                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                 </svg>
-                               </button>
-                               {user.role !== 'admin' && user.role !== 'owner' && (
-                                 <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Suspend User">
-                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
-                                   </svg>
-                                 </button>
-                               )}
+                               <span className="px-2 py-0.5 rounded-full text-xs border">{user.role}</span>
                              </div>
                            </td>
-                    </tr>
+                           <td className="px-6 py-4">
+                             <div className="text-sm text-gray-900">{(user.loyalty_points ?? 0) >= 501 ? 'Gold' : (user.loyalty_points ?? 0) >= 101 ? 'Silver' : 'Bronze'}</div>
+                             <div className="text-xs text-gray-600">{user.loyalty_points ?? 0} pts</div>
+                           </td>
+                           <td className="px-6 py-4">
+                             <div className="text-xs text-gray-600">Last active: Never</div>
+                             <div className="text-xs text-gray-600">{userBookings.length} completed rentals</div>
+                           </td>
+                           <td className="px-6 py-4 text-right">
+                             <div className="flex items-center gap-2 justify-end">
+                               <button className="text-sky-600 hover:text-sky-700" aria-label="View profile">👁</button>
+                               <button className="text-sky-600 hover:text-sky-700" aria-label="Send email">✉</button>
+                               <button className="text-red-600 hover:text-red-700" aria-label="Delete user">🗑</button>
+                             </div>
+                           </td>
+                         </tr>
                        )
                      })}
-                </tbody>
-              </table>
+                   </tbody>
+                 </table>
                </div>
                
                {/* Pagination */}
                <div className="px-6 py-4 border-t bg-gray-50">
                  <div className="flex items-center justify-between">
                    <div className="text-sm text-gray-600">
-                     Showing 1 to {DEMO_USERS.length} of {DEMO_USERS.length} results
+                     Showing 1 to {filteredUsers.length} of {DEMO_USERS.length} results
                    </div>
                    <div className="flex items-center gap-2">
                      <button className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50">
