@@ -1,6 +1,8 @@
 import './App.css'
+import * as React from 'react'
 import AdminPage from './components/AdminPage'
 import AdminSetup from './components/AdminSetup'
+import { createDemoAdmin } from './lib/demo-admin'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 
 // Import extracted page components
@@ -16,13 +18,12 @@ import RegisterPage from './pages/RegisterPage'
 import ProfilePage from './pages/ProfilePage'
 
 export default function App() {
+  React.useEffect(() => {
+    createDemoAdmin()
+  }, [])
+
   return (
-    <BrowserRouter
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true
-      }}
-    >
+    <BrowserRouter>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/cars" element={<CarsPage />} />
