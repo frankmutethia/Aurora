@@ -1,6 +1,14 @@
 import * as React from 'react'
 import { getCurrentUser, logout } from '../lib/auth'
-import { DEMO_CARS, DEMO_BOOKINGS, DEMO_USERS, getAvailableCars, getCarsDueForService, getPendingPayments, getActiveBookings } from '../lib/demo-data'
+import { 
+  DEMO_CARS, 
+  DEMO_BOOKINGS, 
+  DEMO_USERS, 
+  getAvailableCars, 
+  getCarsDueForService, 
+  getPendingPayments, 
+  getActiveBookings 
+} from '../lib/demo-data'
 import type { DashboardStats, Profile, Booking } from '../lib/types'
 import CarManagement from './CarManagement'
 import BookingModal from './BookingModal'

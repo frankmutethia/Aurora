@@ -1,5 +1,5 @@
 import './App.css'
-import type { ReactNode } from 'react'
+import * as React from 'react'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import CarCard from './components/CarCard'
@@ -9,12 +9,11 @@ import { DEMO_CARS, filterDemoCars, getAgencyAddress } from './lib/demo-data'
 import { createDemoAdmin } from './lib/demo-admin'
 import { getCurrentUser } from './lib/auth'
 import { BrowserRouter, Routes, Route, Link, useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import * as React from 'react'
 import type { Booking } from './lib/types'
 import { toast } from './components/Toaster'
 import PaymentSection from './components/PaymentSection'
 
-const Badge = ({ children }: { children: ReactNode }) => (
+const Badge = ({ children }: { children: React.ReactNode }) => (
   <span className="inline-flex items-center rounded-full bg-white/60 backdrop-blur px-3 py-1 text-xs font-medium text-sky-700 ring-1 ring-sky-100">{children}</span>
 )
 
