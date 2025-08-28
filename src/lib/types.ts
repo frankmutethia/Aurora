@@ -1,5 +1,5 @@
 // Core User Management Types
-export type UserRole = 'customer' | 'admin' | 'owner'
+export type UserRole = 'customer' | 'admin' | 'superAdmin'
 
 export type Profile = {
   id: number
@@ -9,6 +9,8 @@ export type Profile = {
   phone?: string
   role: UserRole
   loyalty_points?: number
+  agency?: any // Agency object for admin users
+  is_active?: boolean
   created_at: string
   updated_at: string
 }

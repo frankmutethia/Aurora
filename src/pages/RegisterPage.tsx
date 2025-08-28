@@ -34,16 +34,28 @@ function RegisterPage() {
     setIsLoading(true)
 
     try {
-      await register({
+      const profile = await register({
         first_name: formData.first_name,
         last_name: formData.last_name,
         email: formData.email,
         phone: formData.phone,
         password: formData.password
       })
-      navigate('/profile')
+      
+      console.log('✅ Registration successful:', profile)
+      console.log('➡️ Navigating to login page with prefilled email')
+      
+      // Navigate to login page with email prefilled
+      navigate('/login', { 
+        state: { 
+          email: formData.email, 
+          password: formData.password,
+          message: 'Registration successful! Please log in with your credentials.' 
+        } 
+      })
     } catch (err) {
-      setError('An error occurred during registration')
+      console.error('❌ Registration failed:', err)
+      setError(err instanceof Error ? err.message : 'An error occurred during registration')
     } finally {
       setIsLoading(false)
     }

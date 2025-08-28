@@ -1,17 +1,40 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { login } from '../lib/auth'
 
 function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   })
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+
+  // Handle prefilled data from registration
+  useEffect(() => {
+    if (location.state) {
+      const { email, password, message } = location.state as { 
+        email?: string, 
+        password?: string, 
+        message?: string 
+      }
+      
+      if (email) setFormData(prev => ({ ...prev, email }))
+      if (password) setFormData(prev => ({ ...prev, password }))
+      if (message) {
+        setSuccessMessage(message)
+        console.log('✅ Registration redirect message:', message)
+      }
+      
+      // Clear the location state to prevent showing message on refresh
+      window.history.replaceState({}, document.title)
+    }
+  }, [location.state])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -19,10 +42,24 @@ function LoginPage() {
     setIsLoading(true)
 
     try {
-      await login(formData.email, formData.password)
-      navigate('/profile')
+      const profile = await login(formData.email, formData.password)
+      
+      console.log('🎯 Login successful, navigating based on role:', profile.role)
+      
+      // Navigate based on user role
+      if (profile.role === 'customer') {
+        console.log('➡️ Navigating to customer dashboard (profile page)')
+        navigate('/profile')
+      } else if (profile.role === 'admin' || profile.role === 'superAdmin') {
+        console.log('➡️ Navigating to admin dashboard')
+        navigate('/admin')
+      } else {
+        console.log('➡️ Unknown role, navigating to profile page')
+        navigate('/profile')
+      }
     } catch (err) {
-      setError('An error occurred during login')
+      console.error('❌ Login failed:', err)
+      setError(err instanceof Error ? err.message : 'An error occurred during login')
     } finally {
       setIsLoading(false)
     }
@@ -43,6 +80,12 @@ function LoginPage() {
               <h1 className="text-2xl font-semibold text-slate-900 mb-2">Welcome Back</h1>
               <p className="text-slate-600">Sign in to your account</p>
             </div>
+
+            {successMessage && (
+              <div className="bg-green-50 border border-green-200 rounded-md p-3 mb-6">
+                <p className="text-green-700 text-sm">{successMessage}</p>
+              </div>
+            )}
 
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-6">

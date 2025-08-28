@@ -1,10 +1,33 @@
 import type { Profile, Booking } from './types'
+import { authAPI, type User, type LoginRequest, type RegisterRequest } from './api'
 
 const USER_KEY = 'am_user'
 const BOOKINGS_KEY = 'am_bookings'
 
 export function getCurrentUser(): Profile | null {
-  try { return JSON.parse(localStorage.getItem(USER_KEY) || 'null') } catch { return null }
+  try { 
+    const userData = localStorage.getItem(USER_KEY)
+    if (!userData) return null
+    
+    const user: User = JSON.parse(userData)
+    
+    // Convert API User to Profile type for compatibility
+    return {
+      id: user.id,
+      email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      role: user.role,
+      loyalty_points: user.loyalty_points || 0,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+      phone: user.phone,
+      agency: user.agency,
+      is_active: user.is_active
+    }
+  } catch { 
+    return null 
+  }
 }
 
 export function setCurrentUser(user: Profile | null) {
@@ -12,37 +35,78 @@ export function setCurrentUser(user: Profile | null) {
   else localStorage.removeItem(USER_KEY)
 }
 
-export async function login(email: string, _password: string): Promise<Profile> {
-  // Demo-only: accept any password and create a mock user
-  const user: Profile = { 
-    id: 1, 
-    email, 
-    first_name: email.split('@')[0], 
-    role: 'customer',
-    loyalty_points: 120,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+export async function login(email: string, password: string): Promise<Profile> {
+  console.log('🔐 Auth: Starting login process')
+  
+  const credentials: LoginRequest = { email, password }
+  const response = await authAPI.login(credentials)
+  
+  const user = response.user
+  
+  // Convert API User to Profile type for compatibility
+  const profile: Profile = {
+    id: user.id,
+    email: user.email,
+    first_name: user.first_name,
+    last_name: user.last_name,
+    role: user.role,
+    loyalty_points: user.loyalty_points || 0,
+    created_at: user.created_at,
+    updated_at: user.updated_at,
+    phone: user.phone,
+    agency: user.agency,
+    is_active: user.is_active
   }
-  setCurrentUser(user)
-  return user
+  
+  console.log('✅ Auth: Login successful, profile created:', profile)
+  return profile
 }
 
-export async function register(data: { first_name: string; last_name: string; email: string; password: string; phone?: string }): Promise<Profile> {
-  const user: Profile = { 
-    id: 1, 
-    email: data.email, 
-    first_name: data.first_name, 
-    last_name: data.last_name, 
-    role: 'customer',
-    loyalty_points: 0,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+export async function register(data: { 
+  first_name: string; 
+  last_name: string; 
+  email: string; 
+  password: string; 
+  phone?: string 
+}): Promise<Profile> {
+  console.log('🔐 Auth: Starting registration process')
+  
+  const registerData: RegisterRequest = {
+    first_name: data.first_name,
+    last_name: data.last_name,
+    email: data.email,
+    password: data.password,
+    password_confirmation: data.password,
+    phone: data.phone || ''
   }
-  setCurrentUser(user)
-  return user
+  
+  const response = await authAPI.register(registerData)
+  const user = response.user
+  
+  // Convert API User to Profile type for compatibility
+  const profile: Profile = {
+    id: user.id,
+    email: user.email,
+    first_name: user.first_name,
+    last_name: user.last_name,
+    role: user.role,
+    loyalty_points: user.loyalty_points || 0,
+    created_at: user.created_at,
+    updated_at: user.updated_at,
+    phone: user.phone,
+    agency: user.agency,
+    is_active: user.is_active
+  }
+  
+  console.log('✅ Auth: Registration successful, profile created:', profile)
+  return profile
 }
 
-export function logout() { setCurrentUser(null) }
+export async function logout() { 
+  console.log('🔓 Auth: Starting logout process')
+  await authAPI.logout()
+  console.log('✅ Auth: Logout completed')
+}
 
 export function listBookings(): Booking[] {
   try { return JSON.parse(localStorage.getItem(BOOKINGS_KEY) || '[]') } catch { return [] }
