@@ -310,4 +310,444 @@ export const getAuthHeader = (): Record<string, string> => {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
+// Fleet Management API Types
+export interface Car {
+  id: number
+  make: string
+  model: string
+  year: number
+  license_plate: string
+  category_id: number
+  transmission: string
+  fuel_type: string
+  seats: number
+  rental_rate_per_day: string
+  vin: string
+  current_odometer: number
+  last_service_odometer: number
+  service_threshold_km: number
+  insurance_expiry_date: string
+  agency_id: number
+  status: string
+  created_at: string
+  updated_at: string
+  category?: {
+    id: number
+    name: string
+    description: string
+    created_at: string
+    updated_at: string
+  }
+  images: Array<{
+    id: number
+    car_id: number
+    image_url: string
+    created_at: string
+    updated_at: string
+  }>
+  agency?: {
+    id: number
+    name: string
+    location: string
+    postal_code: string
+    contact: string
+    email: string
+    is_active: boolean
+    created_at: string
+    updated_at: string
+  }
+}
+
+export interface CarFilters {
+  page?: number
+  size?: number
+  max_price?: number
+  status?: string
+  fuel_type?: string
+  seats?: number
+  agency_id?: number
+}
+
+export interface CreateCarData {
+  make: string
+  model: string
+  year: number
+  license_plate: string
+  category_id: number
+  transmission: 'Automatic' | 'Manual' | 'CVT'
+  fuel_type: 'Petrol' | 'Diesel' | 'Hybrid' | 'Electric'
+  seats: number
+  rental_rate_per_day: number
+  agency_id: number
+  vin: string
+  current_odometer: number
+  last_service_odometer: number
+  service_threshold_km: number
+  insurance_expiry_date: string
+  images: File[]
+}
+
+export interface CarListResponse {
+  status: string
+  message: string
+  data: {
+    data: Car[]
+    meta: {
+      current_page: number
+      last_page: number
+      total: number
+      per_page: number
+    }
+  }
+}
+
+// Fleet Management API functions
+export const fleetAPI = {
+  // Fetch all cars with optional filters
+  async getCars(filters: CarFilters = {}): Promise<CarListResponse> {
+    const queryParams = new URLSearchParams()
+    
+    if (filters.page !== undefined) queryParams.append('page', filters.page.toString())
+    if (filters.size !== undefined) queryParams.append('size', filters.size.toString())
+    if (filters.max_price !== undefined) queryParams.append('max_price', filters.max_price.toString())
+    if (filters.status) queryParams.append('status', filters.status)
+    if (filters.fuel_type) queryParams.append('fuel_type', filters.fuel_type)
+    if (filters.seats !== undefined) queryParams.append('seats', filters.seats.toString())
+    if (filters.agency_id !== undefined) queryParams.append('agency_id', filters.agency_id.toString())
+
+    const endpoint = `/cars${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
+    
+    console.log('🚗 Fetching cars with filters:', filters)
+    
+    return await apiRequest<CarListResponse['data']>(endpoint, {
+      method: 'GET'
+    }).then(response => ({
+      ...response,
+      data: response.data
+    }))
+  },
+
+  // Fetch a specific car by ID
+  async getCar(carId: number): Promise<ApiResponse<Car>> {
+    console.log(`🚗 Fetching car details for ID: ${carId}`)
+    
+    return await apiRequest<Car>(`/cars/${carId}`, {
+      method: 'GET'
+    })
+  },
+
+  // Create a new car
+  async createCar(carData: CreateCarData): Promise<ApiResponse<Car>> {
+    console.log('🚗 Creating new car:', { make: carData.make, model: carData.model, license_plate: carData.license_plate })
+    
+    const formData = new FormData()
+    
+    // Append all car data to form data
+    formData.append('make', carData.make)
+    formData.append('model', carData.model)
+    formData.append('year', carData.year.toString())
+    formData.append('license_plate', carData.license_plate)
+    formData.append('category_id', carData.category_id.toString())
+    formData.append('transmission', carData.transmission)
+    formData.append('fuel_type', carData.fuel_type)
+    formData.append('seats', carData.seats.toString())
+    formData.append('rental_rate_per_day', carData.rental_rate_per_day.toString())
+    formData.append('agency_id', carData.agency_id.toString())
+    formData.append('vin', carData.vin)
+    formData.append('current_odometer', carData.current_odometer.toString())
+    formData.append('last_service_odometer', carData.last_service_odometer.toString())
+    formData.append('service_threshold_km', carData.service_threshold_km.toString())
+    formData.append('insurance_expiry_date', carData.insurance_expiry_date)
+    
+    // Append images
+    carData.images.forEach(image => {
+      formData.append('images[]', image)
+    })
+
+    const token = getStoredToken()
+    const headers: HeadersInit = {
+      'ngrok-skip-browser-warning': 'true'
+    }
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
+
+    const response = await fetch(`${API_BASE_URL}/cars`, {
+      method: 'POST',
+      headers,
+      body: formData
+    })
+
+    const data = await response.json()
+    console.log(`📥 Create car response (${response.status}):`, data)
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to create car')
+    }
+
+    return data
+  },
+
+  // Delete a car
+  async deleteCar(carId: number): Promise<void> {
+    console.log(`🗑️ Deleting car with ID: ${carId}`)
+    
+    const token = getStoredToken()
+    const headers: HeadersInit = {
+      'ngrok-skip-browser-warning': 'true'
+    }
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
+
+    const response = await fetch(`${API_BASE_URL}/cars/${carId}`, {
+      method: 'DELETE',
+      headers
+    })
+
+    if (!response.ok) {
+      const data = await response.json()
+      throw new Error(data.message || 'Failed to delete car')
+    }
+
+    console.log('✅ Car deleted successfully')
+  },
+
+  // Toggle car status (Available/Disabled)
+  async toggleCarStatus(carId: number): Promise<ApiResponse<Car>> {
+    console.log(`🔄 Toggling status for car ID: ${carId}`)
+    
+    return await apiRequest<Car>(`/cars/status/${carId}`, {
+      method: 'PUT'
+    })
+  },
+
+  // Toggle car maintenance status
+  async toggleCarMaintenance(carId: number): Promise<ApiResponse<Car>> {
+    console.log(`🔧 Toggling maintenance status for car ${carId}`)
+    
+    return await apiRequest<Car>(`/cars/maintenance/${carId}`, {
+      method: 'PUT'
+    })
+  },
+
+  // Add images to a car
+  async addCarImages(carId: number, images: File[]): Promise<ApiResponse<any[]>> {
+    console.log(`📸 Adding ${images.length} images to car ID: ${carId}`)
+    
+    const formData = new FormData()
+    
+    images.forEach(image => {
+      formData.append('images[]', image)
+    })
+
+    const token = getStoredToken()
+    const headers: HeadersInit = {
+      'ngrok-skip-browser-warning': 'true'
+    }
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
+
+    const response = await fetch(`${API_BASE_URL}/cars/images/update?car_id=${carId}`, {
+      method: 'POST',
+      headers,
+      body: formData
+    })
+
+    const data = await response.json()
+    console.log(`📥 Add images response (${response.status}):`, data)
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to upload images')
+    }
+
+    return data
+  },
+
+  // Delete car image
+  async deleteCarImage(imageId: number): Promise<void> {
+    console.log(`🗑️ Deleting car image ${imageId}`)
+    
+    const token = getStoredToken()
+    const headers: HeadersInit = {
+      'ngrok-skip-browser-warning': 'true'
+    }
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
+
+    const response = await fetch(`${API_BASE_URL}/cars/${imageId}/images/delete`, {
+      method: 'DELETE',
+      headers
+    })
+
+    if (!response.ok) {
+      const data = await response.json()
+      throw new Error(data.message || 'Failed to delete car image')
+    }
+
+    console.log('✅ Car image deleted successfully')
+  }
+}
+
+// ==================== AGENCY MANAGEMENT ====================
+
+export interface CreateAgencyRequest {
+  name: string
+  location: string
+  postal_code: string
+  contact: string
+  email: string
+  is_active: boolean
+}
+
+// Agency Management API functions
+export const agencyAPI = {
+  // Fetch all agencies
+  async getAgencies(): Promise<ApiResponse<Agency[]>> {
+    console.log('📋 Fetching all agencies')
+    
+    return await apiRequest<Agency[]>('/agency/list', {
+      method: 'GET'
+    })
+  },
+
+  // Fetch agency details
+  async getAgencyDetails(agencyId: number): Promise<ApiResponse<Agency>> {
+    console.log(`📋 Fetching agency details for ${agencyId}`)
+    
+    return await apiRequest<Agency>(`/agency/details/${agencyId}`, {
+      method: 'GET'
+    })
+  },
+
+  // Create agency
+  async createAgency(agencyData: CreateAgencyRequest): Promise<ApiResponse<Agency>> {
+    console.log('➕ Creating new agency:', agencyData)
+    
+    return await apiRequest<Agency>('/agency/create', {
+      method: 'POST',
+      body: JSON.stringify(agencyData)
+    })
+  },
+
+  // Update agency
+  async updateAgency(agencyId: number, agencyData: CreateAgencyRequest): Promise<ApiResponse<Agency>> {
+    console.log(`✏️ Updating agency ${agencyId}:`, agencyData)
+    
+    return await apiRequest<Agency>(`/agency/update/${agencyId}`, {
+      method: 'PUT',
+      body: JSON.stringify(agencyData)
+    })
+  },
+
+  // Toggle agency status
+  async toggleAgencyStatus(agencyId: number): Promise<ApiResponse<Agency>> {
+    console.log(`🔄 Toggling agency status for ${agencyId}`)
+    
+    return await apiRequest<Agency>(`/agency/status/${agencyId}`, {
+      method: 'GET'
+    })
+  },
+
+  // Delete agency
+  async deleteAgency(agencyId: number): Promise<void> {
+    console.log(`🗑️ Deleting agency ${agencyId}`)
+    
+    const token = getStoredToken()
+    const headers: HeadersInit = {
+      'ngrok-skip-browser-warning': 'true'
+    }
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
+
+    const response = await fetch(`${API_BASE_URL}/agency/delete/${agencyId}`, {
+      method: 'DELETE',
+      headers
+    })
+
+    if (!response.ok) {
+      const data = await response.json()
+      throw new Error(data.message || 'Failed to delete agency')
+    }
+
+    console.log('✅ Agency deleted successfully')
+  }
+}
+
+// ==================== USER MANAGEMENT ====================
+
+export interface CreateUserRequest {
+  first_name: string
+  last_name: string
+  agency_id: number
+  phone: string
+  email: string
+  password: string
+}
+
+export interface ApiUser {
+  id: number
+  first_name: string
+  last_name: string
+  email: string
+  phone: string | null
+  role: 'superAdmin' | 'admin' | 'customer'
+  loyalty_points: number | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  agency: Agency | null
+}
+
+// User Management API functions
+export const userAPI = {
+  // Create admin user
+  async createAdminUser(userData: CreateUserRequest): Promise<ApiResponse<ApiUser>> {
+    console.log('➕ Creating new admin user:', userData)
+    
+    return await apiRequest<ApiUser>('/user-management/users', {
+      method: 'POST',
+      body: JSON.stringify(userData)
+    })
+  },
+
+  // Fetch all users
+  async getUsers(page = 0, size = 20): Promise<ApiResponse<ApiUser[]>> {
+    console.log(`📋 Fetching users (page: ${page}, size: ${size})`)
+    
+    return await apiRequest<ApiUser[]>(`/user-management/users?page=${page}&size=${size}`, {
+      method: 'GET'
+    })
+  }
+}
+
+// Convenience exports for backward compatibility
+export const fetchCars = fleetAPI.getCars
+export const getCars = fleetAPI.getCars
+export const getCar = fleetAPI.getCar
+export const createCar = fleetAPI.createCar
+export const deleteCar = fleetAPI.deleteCar
+export const toggleCarStatus = fleetAPI.toggleCarStatus
+export const toggleCarMaintenance = fleetAPI.toggleCarMaintenance
+export const addCarImages = fleetAPI.addCarImages
+export const deleteCarImage = fleetAPI.deleteCarImage
+
+export const getAgencies = agencyAPI.getAgencies
+export const getAgencyDetails = agencyAPI.getAgencyDetails
+export const createAgency = agencyAPI.createAgency
+export const updateAgency = agencyAPI.updateAgency
+export const toggleAgencyStatus = agencyAPI.toggleAgencyStatus
+export const deleteAgency = agencyAPI.deleteAgency
+
+export const createAdminUser = userAPI.createAdminUser
+export const getUsers = userAPI.getUsers
+
 export default authAPI

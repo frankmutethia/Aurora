@@ -13,17 +13,18 @@ import MaintenancePage from '../pages/MaintenancePage'
 import ReportsPage from '../pages/ReportsPage'
 
 // Sidebar component
-const AdminSidebar = ({ isOpen, activeSection, onSectionChange }: { 
+const AdminSidebar = ({ isOpen, activeSection, onSectionChange, user }: { 
   isOpen: boolean; 
   activeSection: string; 
-  onSectionChange: (section: string) => void 
+  onSectionChange: (section: string) => void;
+  user: Profile | null;
 }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'bookings', label: 'Bookings', icon: '📅' },
     { id: 'fleet', label: 'Fleet Management', icon: '🚗' },
-    { id: 'users', label: 'Users', icon: '👥' },
-    { id: 'drivers', label: 'Driver Profiles', icon: '🪪' },
+    ...(user?.role === 'superAdmin' ? [{ id: 'users', label: 'Users', icon: '👥' }] : []),
+    // { id: 'drivers', label: 'Driver Profiles', icon: '🪪' },
     { id: 'payments', label: 'Payments', icon: '💳' },
     { id: 'maintenance', label: 'Maintenance', icon: '🔧' },
     { id: 'reports', label: 'Reports', icon: '📈' },
@@ -32,12 +33,32 @@ const AdminSidebar = ({ isOpen, activeSection, onSectionChange }: {
   return (
     <div className={`bg-slate-900 text-white h-full transition-all duration-300 ${isOpen ? 'w-64' : 'w-16'}`}>
       <div className="p-4">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-sky-500 rounded-lg flex items-center justify-center text-white font-bold">
-            A
+        {/* Logo */}
+        <button
+          onClick={() => onSectionChange('dashboard')}
+          className="flex items-center gap-3 mb-4 w-full hover:opacity-80 transition-opacity"
+        >
+          <img 
+            src="/images/logo.jpg" 
+            alt="Aurora Motors Logo" 
+            className={`rounded-lg object-cover ${isOpen ? 'w-12 h-12' : 'w-8 h-8'}`}
+          />
+          {isOpen && (
+            <span className="text-white font-semibold text-lg">Smart Car Rentals</span>
+          )}
+        </button>
+        
+        {/* User Info */}
+        {isOpen && user && (
+          <div className="text-center mb-6 pb-4 border-b border-slate-700">
+            <div className="text-sm font-medium text-white">
+              {user.first_name} {user.last_name}
+            </div>
+            <div className="text-xs text-slate-400 mt-1 capitalize">
+              {user.role}
+            </div>
           </div>
-          {isOpen && <span className="font-semibold">Aurora Admin</span>}
-        </div>
+        )}
       </div>
       
       <nav className="mt-8">
@@ -62,7 +83,7 @@ const AdminSidebar = ({ isOpen, activeSection, onSectionChange }: {
 const AdminTopBar = ({ user, onToggleSidebar }: { user: Profile | null; onToggleSidebar: () => void }) => {
   const handleLogout = () => {
     logout()
-    window.location.href = '/'
+    window.location.href = '/login'
   }
 
   if (!user) return null
@@ -158,7 +179,8 @@ const AdminDashboard = () => {
       <AdminSidebar 
         isOpen={sidebarOpen} 
         activeSection={activeSection} 
-        onSectionChange={setActiveSection} 
+        onSectionChange={setActiveSection}
+        user={user}
       />
       
       {/* Main content area */}

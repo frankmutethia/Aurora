@@ -58,7 +58,16 @@ export async function login(email: string, password: string): Promise<Profile> {
     is_active: user.is_active
   }
   
-  console.log('✅ Auth: Login successful, profile created:', profile)
+  // Store user data and token in localStorage
+  setCurrentUser(profile)
+  if (response.token) {
+    localStorage.setItem('auth_token', response.token)
+  }
+  
+  console.log('✅ Auth: Login successful, profile created and stored:', profile)
+  console.log('🎯 Auth: User role:', profile.role)
+  console.log('🏢 Auth: User agency:', profile.agency?.name || 'No agency')
+  
   return profile
 }
 
@@ -104,8 +113,17 @@ export async function register(data: {
 
 export async function logout() { 
   console.log('🔓 Auth: Starting logout process')
-  await authAPI.logout()
-  console.log('✅ Auth: Logout completed')
+  try {
+    await authAPI.logout()
+  } catch (error) {
+    console.error('🔴 Auth: API logout failed:', error)
+  }
+  
+  // Clear local storage regardless of API call success
+  setCurrentUser(null)
+  localStorage.removeItem('auth_token')
+  
+  console.log('✅ Auth: Logout completed - user data and token cleared')
 }
 
 export function listBookings(): Booking[] {
