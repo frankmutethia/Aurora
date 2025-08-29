@@ -1,6 +1,8 @@
 import './App.css'
+import * as React from 'react'
 import AdminPage from './components/AdminPage'
 import AdminSetup from './components/AdminSetup'
+import { createDemoAdmin } from './lib/demo-admin'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 
 // Import extracted page components
@@ -16,35 +18,25 @@ import RegisterPage from './pages/RegisterPage'
 import ProfilePage from './pages/ProfilePage'
 
 export default function App() {
+  React.useEffect(() => {
+    createDemoAdmin()
+  }, [])
+
   return (
-    <BrowserRouter
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true
-      }}
-    >
+    <BrowserRouter>
       <Routes>
-        {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
         <Route path="/cars" element={<CarsPage />} />
         <Route path="/car/:carId" element={<CarDetailsPage />} />
+        <Route path="/book/:carId" element={<BookPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/terms" element={<TermsPage />} />
-        
-        {/* Authentication Routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        
-        {/* Protected User Routes */}
         <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/book/:carId" element={<BookPage />} />
-        
-        {/* Admin Routes */}
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/admin/setup" element={<AdminSetup />} />
-        
-        {/* Fallback Route */}
         <Route path="*" element={<HomePage />} />
       </Routes>
     </BrowserRouter>

@@ -1,6 +1,10 @@
 import * as React from 'react'
 import type { Booking } from '../lib/types'
 import { DEMO_CARS, DEMO_USERS } from '../lib/demo-data'
+// Import the PDF template via Vite asset pipeline
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - Vite will replace this with the URL string at build time
+import contractTemplateUrl from '../assets/SMART RENTALS PRO CONTRACT FILE(1) (1).pdf?url'
 import { getBooking, updateBooking } from '../lib/auth'
 
 interface BookingModalProps {
@@ -222,44 +226,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
             </div>
           </div>
 
-          {/* Driver Details (Mock) */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Driver Details</h3>
-            <div className="divide-y">
-              <div className="flex items-start justify-between py-3">
-                <span className="text-gray-600">Full Name</span>
-                <span className="font-medium text-gray-900">{user ? `${user.first_name?.toUpperCase()} ${user.last_name?.toUpperCase()}` : 'N/A'}</span>
-              </div>
-              <div className="flex items-start justify-between py-3">
-                <span className="text-gray-600">Address</span>
-                <span className="font-medium text-gray-900 text-right">U 5 6 SYLVANWOOD CRES<br/>NARRE WARREN VIC 3805</span>
-              </div>
-              <div className="flex items-start justify-between py-3">
-                <span className="text-gray-600">DOB</span>
-                <span className="font-medium text-gray-900">06 MAY 1997</span>
-              </div>
-              <div className="flex items-start justify-between py-3">
-                <span className="text-gray-600">Licence NO.</span>
-                <span className="font-medium text-gray-900">054309446</span>
-              </div>
-              <div className="flex items-start justify-between py-3">
-                <span className="text-gray-600">Licence State/Country of issue</span>
-                <span className="font-medium text-gray-900">VIC</span>
-              </div>
-              <div className="flex items-start justify-between py-3">
-                <span className="text-gray-600">Email address /CONTACT NO.</span>
-                <span className="font-medium text-gray-900">{user?.email || '—'}{user?.phone ? ` / ${user.phone}` : ''}</span>
-              </div>
-              <div className="flex items-start justify-between py-3">
-                <span className="text-gray-600">STARTDATE</span>
-                <span className="font-medium text-gray-900">{new Date(booking.start_date).toLocaleDateString('en-AU')}</span>
-              </div>
-              <div className="flex items-start justify-between py-3">
-                <span className="text-gray-600">END DATES</span>
-                <span className="font-medium text-gray-900">{booking.status === 'in_progress' || booking.status === 'confirmed' ? new Date(booking.end_date).toLocaleDateString('en-AU') : 'ONGOING'}</span>
-              </div>
-            </div>
-          </div>
+          {/* Driver profile section removed per requirements */}
 
           {/* Vehicle Information */}
           <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -408,6 +375,71 @@ const BookingModal: React.FC<BookingModalProps> = ({
               className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Close
+            </button>
+            <button
+              className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              onClick={() => {
+                const data = {
+                  renterName: user ? `${user.first_name || ''} ${user.last_name || ''}` : '',
+                  renterEmail: user?.email || '',
+                  renterPhone: booking.phone_number || '',
+                  carId: booking.car_id,
+                  carMake: car?.make || '',
+                  carModel: car?.model || '',
+                  carYear: car?.year || '',
+                  carPlate: car?.license_plate || '',
+                  pickup: new Date(booking.start_date).toLocaleString(),
+                  dropoff: new Date(booking.end_date).toLocaleString(),
+                  pickupLocation: booking.pickup_location,
+                  returnLocation: booking.return_location,
+                  total: booking.total_cost.toFixed(2),
+                  bondAmount: (bondAmount||0).toFixed(2),
+                  week1Amount: (week1Amount||0).toFixed(2)
+                }
+                ;(async () => {
+                  try {
+                    const mod: any = await import('https://cdn.skypack.dev/pdf-lib@1.17.1')
+                    const { PDFDocument, StandardFonts, rgb } = mod
+                    const templateBytes = await fetch(contractTemplateUrl as unknown as string).then(r => r.arrayBuffer())
+                    const pdfDoc = await PDFDocument.load(templateBytes)
+                    const page = pdfDoc.getPages()[0]
+                    const helv = await pdfDoc.embedFont(StandardFonts.Helvetica)
+                    const helvB = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+                    const draw = (t: string, x: number, y: number, s = 10, b = false) => page.drawText(t || '', { x, y, size: s, font: b ? helvB : helv, color: rgb(0.1,0.12,0.16) })
+
+                    // Company header (already on template but reinforce text-only fields below if needed)
+                    // Renter details (right-hand columns on your template vary; we position in margins that are free)
+                    draw(`${data.renterName}`, 615, 646, 9)
+                    draw(`${data.renterPhone}`, 615, 480, 9)
+                    draw(`${data.renterEmail}`, 615, 462, 9)
+
+                    // Vehicle section left
+                    draw(`${data.carPlate}`, 470, 680, 9)
+                    draw(`${data.carMake} ${data.carModel}`, 470, 643, 9)
+                    draw(`${data.pickup}`, 470, 606, 9)
+                    draw(`${data.dropoff}`, 470, 588, 9)
+
+                    // Totals (bottom left table on page 1 varies – place near security bond/daily rate area)
+                    draw(`$${data.total}`, 705, 372, 9, true)
+                    if (data.bondAmount) draw(`$${data.bondAmount}`, 705, 340, 9)
+                    if (data.week1Amount) draw(`$${data.week1Amount}`, 705, 356, 9)
+
+                    const bytes = await pdfDoc.save()
+                    const blob = new Blob([bytes], { type: 'application/pdf' })
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = `rental-contract-${booking.id}.pdf`
+                    a.click()
+                    URL.revokeObjectURL(url)
+                  } catch (err) {
+                    console.error('Failed generating contract PDF', err)
+                    alert('Could not generate contract PDF. Please try again.')
+                  }
+                })()
+              }}
+            >
+              Download Contract
             </button>
             <button className="px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors" onClick={()=>{
               const existing = getBooking(booking.id) || booking

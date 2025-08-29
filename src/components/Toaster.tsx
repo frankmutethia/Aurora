@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import * as React from 'react'
 
 type ToastMsg = { id: number; text: string }
 
@@ -7,9 +7,9 @@ export function toast(text: string) {
 }
 
 const Toaster = () => {
-  const [queue, setQueue] = useState<ToastMsg[]>([])
+  const [queue, setQueue] = React.useState<ToastMsg[]>([])
 
-  useEffect(() => {
+  React.useEffect(() => {
     function onToast(e: Event) {
       const detail = (e as CustomEvent).detail as { text?: string }
       if (!detail?.text) return

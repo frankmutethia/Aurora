@@ -1,14 +1,16 @@
 // Core User Management Types
-export type UserRole = 'customer' | 'admin' | 'owner'
+export type UserRole = 'customer' | 'admin' | 'superAdmin'
 
 export type Profile = {
   id: number
   email: string
-  first_name?: string
-  last_name?: string
-  phone?: string
+  first_name: string
+  last_name: string
+  phone: string
   role: UserRole
-  loyalty_points?: number
+  loyalty_points: number
+  agency?: Agency | null
+  is_active: boolean
   created_at: string
   updated_at: string
 }
@@ -17,8 +19,17 @@ export type Profile = {
 export type CarStatus = 'available' | 'booked' | 'in_use' | 'under_maintenance' | 'due_for_service'
 
 export type CarCategory = 'SUV' | 'Sedan' | 'Hatchback' | 'Van' | 'Luxury' | 'Electric'
-export type Agency = 'Aurora motors' | 'Smart' | 'JNK'
-export const AGENCIES: Agency[] = ['Aurora motors', 'Smart', 'JNK']
+export type Agency = {
+  id: number
+  name: string
+  location: string
+  postal_code: string
+  contact: string
+  email: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
 
 export type AgencyLocation = {
   id: Agency
@@ -41,21 +52,45 @@ export type Car = {
   model: string
   year: number
   license_plate: string
-  agency: Agency
-  vin?: string
-  bond_amount?: number
-  category: CarCategory
-  transmission: Transmission
-  fuel_type: FuelType
+  category_id: number
+  transmission: string
+  fuel_type: string
   seats: number
-  rental_rate_per_day: number
-  status: CarStatus
+  rental_rate_per_day: string
+  vin: string
   current_odometer: number
   last_service_odometer: number
   service_threshold_km: number
-  image_url?: string
+  insurance_expiry_date: string
+  agency_id: number
   created_at: string
   updated_at: string
+  status: string
+  category: {
+    id: number
+    name: string
+    description: string
+    created_at: string
+    updated_at: string
+  }
+  images: Array<{
+    id: number
+    car_id: number
+    image_url: string
+    created_at: string
+    updated_at: string
+  }>
+  agency: {
+    id: number
+    name: string
+    location: string
+    postal_code: string
+    contact: string
+    email: string
+    is_active: boolean
+    created_at: string
+    updated_at: string
+  }
 }
 
 // Enhanced Booking System Types
