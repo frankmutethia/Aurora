@@ -24,18 +24,27 @@ export default function App() {
       }}
     >
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
         <Route path="/cars" element={<CarsPage />} />
         <Route path="/car/:carId" element={<CarDetailsPage />} />
-        <Route path="/book/:carId" element={<BookPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        
+        {/* Authentication Routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        
+        {/* Protected User Routes */}
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/book/:carId" element={<BookPage />} />
+        
+        {/* Admin Routes */}
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/admin/setup" element={<AdminSetup />} />
+        
+        {/* Fallback Route */}
         <Route path="*" element={<HomePage />} />
       </Routes>
     </BrowserRouter>

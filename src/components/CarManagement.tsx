@@ -71,21 +71,33 @@ const CarManagement = () => {
         page: currentPage - 1, // API uses 0-based pagination
         size: 20
       }
-      
       if (selectedStatus !== 'all') filters.status = selectedStatus
       if (selectedFuelType !== 'all') filters.fuel_type = selectedFuelType
       if (selectedSeats !== 'all') filters.seats = parseInt(selectedSeats)
       if (maxPrice) filters.max_price = parseFloat(maxPrice)
-      if (userAgencyId) filters.agency_id = userAgencyId
 
-      console.log('🔍 Loading cars with filters:', filters)
-      
-      const response = await fleetAPI.getCars(filters)
-      console.log('✅ Cars loaded:', response.data.data.length, 'cars')
-      
-      setCars(response.data.data)
-      setTotalPages(response.data.meta.last_page)
-      setTotalCars(response.data.meta.total)
+      let loadedCars: Car[] = []
+      let pages = 1
+      let total = 0
+
+      if (userAgencyId) {
+        console.log('🔍 Loading cars by agency for admin:', { agencyId: userAgencyId, page: filters.page, size: filters.size })
+        const response = await fleetAPI.getCarsByAgency(userAgencyId, filters.page || 0, filters.size || 20)
+        loadedCars = (response.data as any).data || []
+        pages = (response.data as any).meta?.total_pages || 1
+        total = (response.data as any).meta?.total_elements || loadedCars.length
+      } else {
+        console.log('🔍 Loading frontend cars with filters:', filters)
+        const response = await fleetAPI.getCars(filters)
+        loadedCars = response.data.data
+        pages = response.data.meta.last_page
+        total = response.data.meta.total
+      }
+
+      console.log('✅ Cars loaded:', loadedCars.length, 'cars')
+      setCars(loadedCars)
+      setTotalPages(pages)
+      setTotalCars(total)
       
     } catch (err) {
       console.error('❌ Failed to load cars:', err)
@@ -649,6 +661,8 @@ const CarManagement = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                     min="2000"
                     max={new Date().getFullYear() + 1}
+                    placeholder="Year"
+                    aria-label="Year"
                     required
                   />
                 </div>
@@ -671,6 +685,7 @@ const CarManagement = () => {
                     value={formData.category_id}
                     onChange={(e) => handleInputChange('category_id', parseInt(e.target.value))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    aria-label="Car category"
                     required
                   >
                     <option value={1}>Economy</option>
@@ -686,6 +701,7 @@ const CarManagement = () => {
                     value={formData.transmission}
                     onChange={(e) => handleInputChange('transmission', e.target.value as 'Automatic' | 'Manual' | 'CVT')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    aria-label="Transmission"
                     required
                   >
                     <option value="Automatic">Automatic</option>
@@ -700,6 +716,7 @@ const CarManagement = () => {
                     value={formData.fuel_type}
                     onChange={(e) => handleInputChange('fuel_type', e.target.value as 'Petrol' | 'Diesel' | 'Hybrid' | 'Electric')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    aria-label="Fuel type"
                     required
                   >
                     <option value="Petrol">Petrol</option>
@@ -718,6 +735,8 @@ const CarManagement = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                     min="2"
                     max="12"
+                    placeholder="Number of seats"
+                    aria-label="Seats"
                     required
                   />
                 </div>
@@ -731,6 +750,8 @@ const CarManagement = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                     min="0"
                     step="0.01"
+                    placeholder="Daily rate"
+                    aria-label="Daily rate"
                     required
                   />
                 </div>
@@ -743,6 +764,7 @@ const CarManagement = () => {
                     onChange={(e) => handleInputChange('vin', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                     placeholder="e.g., ABCDEFG1234567890"
+                    aria-label="VIN"
                     required
                   />
                 </div>
@@ -755,6 +777,8 @@ const CarManagement = () => {
                     onChange={(e) => handleInputChange('current_odometer', parseInt(e.target.value))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                     min="0"
+                    placeholder="Current odometer"
+                    aria-label="Current odometer"
                     required
                   />
                 </div>
@@ -767,6 +791,8 @@ const CarManagement = () => {
                     onChange={(e) => handleInputChange('last_service_odometer', parseInt(e.target.value))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                     min="0"
+                    placeholder="Last service odometer"
+                    aria-label="Last service odometer"
                     required
                   />
                 </div>
@@ -779,6 +805,8 @@ const CarManagement = () => {
                     onChange={(e) => handleInputChange('service_threshold_km', parseInt(e.target.value))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                     min="1000"
+                    placeholder="Service threshold km"
+                    aria-label="Service threshold"
                     required
                   />
                 </div>
@@ -790,6 +818,7 @@ const CarManagement = () => {
                     value={formData.insurance_expiry_date}
                     onChange={(e) => handleInputChange('insurance_expiry_date', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    aria-label="Insurance expiry date"
                     required
                   />
                 </div>
@@ -802,6 +831,7 @@ const CarManagement = () => {
                     multiple
                     onChange={(e) => handleInputChange('images', Array.from(e.target.files || []))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    aria-label="Car images"
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">Select one or more images for the car</p>

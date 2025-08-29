@@ -1,8 +1,9 @@
 import * as React from 'react'
-import Header from '../components/Header'
-import Footer from '../components/Footer'
+import UserLayout from '../components/layout/UserLayout'
 import CarCard from '../components/CarCard'
+import { fleetAPI } from '../lib/api'
 import { DEMO_CARS } from '../lib/demo-data'
+import type { Car } from '../lib/types'
 
 const Badge = ({ children }: { children: React.ReactNode }) => (
   <span className="inline-flex items-center rounded-full bg-white/60 backdrop-blur px-3 py-1 text-xs font-medium text-sky-700 ring-1 ring-sky-100">{children}</span>
@@ -38,16 +39,36 @@ const HeroBackground = () => (
       <path fill="url(#waveB)" d="M0,224L48,208C96,192,192,160,288,149.3C384,139,480,149,576,165.3C672,181,768,203,864,197.3C960,192,1056,160,1152,149.3C1248,139,1344,149,1392,154.7L1440,160L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z" />
     </svg>
     <div className="absolute inset-x-0 bottom-0 h-1/2 bg-[radial-gradient(80%_60%_at_60%_80%,rgba(56,189,248,0.25),transparent_60%)]" />
-    </div>
-  )
+  </div>
+)
 
 function HomePage() {
-  const featured = DEMO_CARS.slice(0, 4)
+  const [featured, setFeatured] = React.useState<Car[]>([])
+  const [isLoading, setIsLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    const fetchFeaturedCars = async () => {
+      try {
+        setIsLoading(true)
+        // Fetch cars from category 2 (Compact) as featured cars
+        const response = await fleetAPI.getCarsByCategory(2, 0, 4)
+        setFeatured(response.data || [])
+      } catch (err) {
+        console.error('Failed to fetch featured cars:', err)
+        // Fallback to demo cars if API fails (e.g., 500)
+        setFeatured(DEMO_CARS.slice(0, 4) as unknown as Car[])
+        setError('')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchFeaturedCars()
+  }, [])
 
   return (
-    <main className="min-h-screen flex flex-col bg-white">
-      <Header />
-
+    <UserLayout>
       {/* Hero */}
       <section className="relative">
         <HeroBackground />
@@ -100,9 +121,34 @@ function HomePage() {
           </a>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {featured.map((car) => (
-            <CarCard key={car.id} car={car} />
-          ))}
+          {isLoading ? (
+            // Loading skeleton
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-gray-100 rounded-lg p-4 animate-pulse">
+                <div className="h-32 bg-gray-200 rounded mb-3"></div>
+                <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              </div>
+            ))
+          ) : error ? (
+            <div className="col-span-full text-center py-8">
+              <p className="text-red-600">{error}</p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="mt-2 text-sky-600 hover:text-sky-700 underline"
+              >
+                Try again
+              </button>
+            </div>
+          ) : featured.length > 0 ? (
+            featured.map((car) => (
+              <CarCard key={car.id} car={car} />
+            ))
+          ) : (
+            <div className="col-span-full text-center py-8">
+              <p className="text-gray-500">No cars available at the moment</p>
+            </div>
+          )}
         </div>
       </SectionContainer>
 
@@ -142,9 +188,7 @@ function HomePage() {
           </div>
         </div>
       </SectionContainer>
-
-      <Footer />
-    </main>
+    </UserLayout>
   )
 }
 

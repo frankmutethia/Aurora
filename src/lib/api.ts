@@ -401,6 +401,22 @@ export interface CarListResponse {
   }
 }
 
+// ==================== BOOKINGS ====================
+export interface BookingListResponse {
+  status: string
+  message: string
+  data: {
+    data: import('./api').Car[] // placeholder to satisfy TS when unused
+  } | any
+}
+
+export const bookingAPI = {
+  async getBookings(page: number = 0, size: number = 20): Promise<ApiResponse<{ data: any[]; meta?: any }>> {
+    const endpoint = `/booking/list?page=${page}&size=${size}`
+    return await apiRequest(endpoint, { method: 'GET' })
+  }
+}
+
 // Fleet Management API functions
 export const fleetAPI = {
   // Fetch all cars with optional filters
@@ -414,8 +430,8 @@ export const fleetAPI = {
     if (filters.fuel_type) queryParams.append('fuel_type', filters.fuel_type)
     if (filters.seats !== undefined) queryParams.append('seats', filters.seats.toString())
     if (filters.agency_id !== undefined) queryParams.append('agency_id', filters.agency_id.toString())
-
-    const endpoint = `/cars${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
+    // Frontend list endpoint per backend contract
+    const endpoint = `/cars/frontend/list${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
     
     console.log('🚗 Fetching cars with filters:', filters)
     
@@ -425,6 +441,11 @@ export const fleetAPI = {
       ...response,
       data: response.data
     }))
+  },
+
+  // Frontend list with explicit filters helper (same as getCars but clearer intent)
+  async getCarsFrontend(filters: CarFilters = {}): Promise<CarListResponse> {
+    return this.getCars(filters)
   },
 
   // Fetch a specific car by ID
@@ -487,6 +508,24 @@ export const fleetAPI = {
     }
 
     return data
+  },
+
+  // List cars by agency for frontend users
+  async getCarsByAgency(agencyId: number, page: number = 0, size: number = 10): Promise<ApiResponse<{ data: Car[]; meta: { page: number; size: number; total_pages: number; total_elements: number } }>> {
+    console.log(`🚗 Fetching cars by agency (frontend) agencyId=${agencyId}, page=${page}, size=${size}`)
+    const endpoint = `/cars/list/by-agency/${agencyId}?page=${page}&size=${size}`
+    return await apiRequest(endpoint, { method: 'GET' })
+  },
+
+  // Fetch cars by category (matches real API endpoint)
+  async getCarsByCategory(categoryId: number, page: number = 0, size: number = 20): Promise<ApiResponse<Car[]>> {
+    console.log(`🚗 Fetching cars by category ID: ${categoryId}, page: ${page}, size: ${size}`)
+    
+    const endpoint = `/cars/categories/list?category_id=${categoryId}&page=${page}&size=${size}`
+    
+    return await apiRequest<Car[]>(endpoint, {
+      method: 'GET'
+    })
   },
 
   // Delete a car

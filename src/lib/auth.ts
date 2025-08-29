@@ -64,9 +64,15 @@ export async function login(email: string, password: string): Promise<Profile> {
     localStorage.setItem('auth_token', response.token)
   }
   
+  // Store dashboard data if available
+  if (response.dashboard) {
+    localStorage.setItem('am_dashboard', JSON.stringify(response.dashboard))
+  }
+  
   console.log('✅ Auth: Login successful, profile created and stored:', profile)
   console.log('🎯 Auth: User role:', profile.role)
   console.log('🏢 Auth: User agency:', profile.agency?.name || 'No agency')
+  console.log('📊 Dashboard data stored:', response.dashboard)
   
   return profile
 }
